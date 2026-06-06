@@ -1,0 +1,277 @@
+"""Orchestration layer: discover → enrich → match. Both the web dashboard
+and the Telegram bot call these functions so there is one code path.
+
+Persists results to data/leads.jsonl. Analysis/outreach (Claude) plug in
+here later; right now matching uses the free deterministic scorer.
+"""
+from __future__ import annotations
+
+import json
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
+from typing import Callable, Optional
+
+from .catalog.match import Match, match_company
+from .catalog.n8n_templates import recommend_templates
+from .enrich.linkedin import enrich_people
+from .enrich.site import enrich_site
+from .i18n import resolve_category
+from .sources.osm import Company, discover, discover_around
+
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+DATA_DIR.mkdir(exist_ok=True)
+LEADS_FILE = DATA_DIR / "leads.jsonl"
+SAVED_FILE = DATA_DIR / "saved.json"
+
+
+@dataclass
+class Lead:
+    company: dict
+    enrichment: dict
+    automations: list[dict] = field(default_factory=list)   # our sellable offers
+    templates: list[dict] = field(default_factory=list)     # live n8n library matches
+    lang: str = "uk"
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+def _company_signals(c: Company, enrichment: dict) -> dict:
+    """Build the dict the matcher consumes from a company + its enrichment."""
+    return {
+        "name": c.name,
+        "industry": c.category,
+        "description": " ".join(filter(None, [c.name, c.address or ""])),
+        "signals": list(enrichment.get("socials", {}).keys()),
+        "socials": enrichment.get("socials", {}),
+    }
+
+
+def _merge_enrichment(base: dict, extra: dict) -> dict:
+    """Merge Apify base (emails/socials/reviews) with crawled extras
+    (decision-makers, staff, growth signals, profile)."""
+    out = dict(base)
+    out["emails"] = list(dict.fromkeys((base.get("emails") or []) + (extra.get("emails") or [])))
+    out["phones"] = list(dict.fromkeys((base.get("phones") or []) + (extra.get("phones") or [])))
+    out["socials"] = {**(extra.get("socials") or {}), **(base.get("socials") or {})}
+    for k in ("telegram", "decision_makers", "staff", "linkedin_profiles", "pages_crawled"):
+        if extra.get(k):
+            out[k] = extra[k]
+    if extra.get("signals"):
+        out["signals"] = extra["signals"]
+    # Keep apify size_band but adopt crawled profile fields where richer.
+    prof = dict(base.get("profile") or {})
+    for k, v in (extra.get("profile") or {}).items():
+        if v and not prof.get(k):
+            prof[k] = v
+    out["profile"] = prof
+    return out
+
+
+def _process(companies, lang: str, enrich: bool, progress, category: str = "",
+             with_templates: bool = True) -> list[Lead]:
+    # Live n8n templates depend on category only → fetch once, reuse (cached).
+    templates: list[dict] = []
+    if with_templates and category:
+        try:
+            templates = [t.to_dict() for t in recommend_templates(category)]
+        except Exception:
+            templates = []
+
+    leads: list[Lead] = []
+    for c in companies:
+        enrichment: dict = {}
+        # Apify already returns email/socials/reviews → use them as the base.
+        prebuilt = getattr(c, "raw_tags", {}).get("_enrichment")
+        if prebuilt:
+            enrichment = dict(prebuilt)
+        if enrich and c.website:
+            if progress:
+                progress(f"enrich:{c.name}")
+            try:
+                crawled = enrich_site(c.website, max_pages=4).to_dict()
+                enrichment = _merge_enrichment(enrichment, crawled) if prebuilt else crawled
+            except Exception as exc:  # network/parse issues shouldn't kill the batch
+                if not prebuilt:
+                    enrichment = {"error": str(exc)}
+        if c.phone and not enrichment.get("phones"):
+            enrichment.setdefault("phones", []).append(c.phone)
+        # Attach LinkedIn profile + ready search links to each decision-maker.
+        if enrichment.get("decision_makers"):
+            enrich_people(enrichment["decision_makers"], c.name,
+                          enrichment.get("linkedin_profiles", []))
+        signals = _company_signals(c, enrichment)
+        matches: list[Match] = match_company(signals, lang=lang)
+        leads.append(
+            Lead(
+                company=c.to_dict(),
+                enrichment=enrichment,
+                automations=[m.__dict__ for m in matches],
+                templates=templates,
+                lang=lang,
+            )
+        )
+    save_leads(leads)
+    return leads
+
+
+def find_leads(
+    category_label: str,
+    city: str,
+    country: str = "Ukraine",
+    limit: int = 20,
+    lang: str = "uk",
+    enrich: bool = True,
+    require_website: bool = False,
+    source: str = "osm",
+    progress: Optional[Callable[[str], None]] = None,
+) -> list[Lead]:
+    """Full free pipeline by city. `source` = 'osm' (default, reliable) or
+    'gmaps' (richer: ratings/reviews/size, but experimental). gmaps falls
+    back to OSM if Google blocks the request."""
+    category = resolve_category(category_label) or category_label
+    if progress:
+        progress(f"discover:{source}:{category}:{city}")
+    companies = []
+    if source == "gmaps":
+        # Live Google Maps via headless browser — works worldwide incl. Ukraine.
+        try:
+            from .sources.gmaps_playwright import discover_gmaps_pw
+            companies = discover_gmaps_pw(category, city, country=country, limit=limit)
+        except Exception as exc:
+            if progress:
+                progress(f"gmaps_failed:{exc}")
+    if not companies:  # default / fallback
+        companies = discover(category, city, country=country, limit=limit,
+                             require_website=require_website)
+    return _process(companies, lang, enrich, progress, category=category)
+
+
+def find_leads_around(
+    category_label: str,
+    lat: float,
+    lon: float,
+    radius_m: int = 2000,
+    limit: int = 20,
+    lang: str = "uk",
+    enrich: bool = True,
+    require_website: bool = False,
+    progress: Optional[Callable[[str], None]] = None,
+) -> list[Lead]:
+    """Full free pipeline around a map point (mini-map selection)."""
+    category = resolve_category(category_label) or category_label
+    if progress:
+        progress(f"discover_around:{category}:{lat},{lon}")
+    companies = discover_around(
+        category, lat, lon, radius_m=radius_m, limit=limit, require_website=require_website
+    )
+    return _process(companies, lang, enrich, progress, category=category)
+
+
+def save_leads(leads: list[Lead]) -> None:
+    with open(LEADS_FILE, "a", encoding="utf-8") as f:
+        for lead in leads:
+            f.write(json.dumps(lead.to_dict(), ensure_ascii=False) + "\n")
+
+
+def load_leads(limit: int = 200) -> list[dict]:
+    if not LEADS_FILE.exists():
+        return []
+    out: list[dict] = []
+    with open(LEADS_FILE, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                out.append(json.loads(line))
+    return out[-limit:]
+
+
+# ---- Quality filters ---------------------------------------------------------
+
+def passes_filters(
+    lead: dict,
+    *,
+    email: bool = False,
+    phone: bool = False,
+    social: bool = False,
+    linkedin: bool = False,
+    telegram: bool = False,
+    dm: bool = False,
+) -> bool:
+    """True if the lead has the requested contact signals. Used to hide
+    empty/low-quality cards in the dashboard and bot."""
+    en = lead.get("enrichment", {}) or {}
+    socials = en.get("socials", {}) or {}
+    if email and not en.get("emails"):
+        return False
+    if phone and not en.get("phones"):
+        return False
+    if social and not socials:
+        return False
+    if linkedin and not socials.get("linkedin"):
+        return False
+    if telegram and not en.get("telegram"):
+        return False
+    if dm and not en.get("decision_makers"):
+        return False
+    return True
+
+
+# ---- Saved / liked prospects -------------------------------------------------
+
+def _lead_id(lead: dict) -> str:
+    """Stable id for dedupe: OSM id, else website, else name+city."""
+    c = lead.get("company", {})
+    return c.get("osm_id") or c.get("website") or f"{c.get('name')}|{c.get('city')}"
+
+
+def _read_saved() -> dict[str, dict]:
+    if not SAVED_FILE.exists():
+        return {}
+    try:
+        return json.loads(SAVED_FILE.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def _write_saved(d: dict[str, dict]) -> None:
+    SAVED_FILE.write_text(json.dumps(d, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def save_favorite(lead: dict) -> str:
+    """Like/save a prospect. Returns its id. Idempotent."""
+    d = _read_saved()
+    lid = _lead_id(lead)
+    lead = {**lead, "saved_id": lid}
+    d[lid] = lead
+    _write_saved(d)
+    return lid
+
+
+def remove_favorite(lead_id: str) -> bool:
+    d = _read_saved()
+    if lead_id in d:
+        del d[lead_id]
+        _write_saved(d)
+        return True
+    return False
+
+
+def list_favorites() -> list[dict]:
+    return list(_read_saved().values())
+
+
+def saved_ids() -> list[str]:
+    return list(_read_saved().keys())
+
+
+if __name__ == "__main__":
+    import sys
+
+    cat = sys.argv[1] if len(sys.argv) > 1 else "ресторан"
+    town = sys.argv[2] if len(sys.argv) > 2 else "Львів"
+    res = find_leads(cat, town, limit=5, progress=lambda s: print("…", s))
+    for lead in res:
+        autos = ", ".join(a["name"] for a in lead.automations) or "—"
+        print(f"\n• {lead.company['name']}  [{lead.company.get('website') or 'no site'}]")
+        print(f"   → {autos}")

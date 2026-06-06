@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="uk" class="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LeadGen</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: { extend: {
+    fontFamily: { sans:['Inter','ui-sans-serif','system-ui'], display:['"Space Grotesk"','Inter','sans-serif'] },
+    colors: { brand:{50:'#eef2ff',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca'} },
+    keyframes: {
+      fadeup:{'0%':{opacity:0,transform:'translateY(8px)'},'100%':{opacity:1,transform:'translateY(0)'}},
+      shimmer:{'100%':{transform:'translateX(100%)'}},
+    },
+    animation: { fadeup:'fadeup .35s cubic-bezier(.2,.7,.3,1) both' },
+  }}
+}
+</script>
+<style>
+  :root{ color-scheme: dark; }
+  html.dark{ color-scheme: dark; } html:not(.dark){ color-scheme: light; }
+  body{ font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  h1,h2,h3,.font-display{ font-family:'Space Grotesk','Inter',sans-serif; }
+
+  /* Ambient gradient backdrop */
+  .aurora{ position:fixed; inset:0; z-index:-1; overflow:hidden; }
+  .aurora::before, .aurora::after{ content:''; position:absolute; border-radius:9999px; filter:blur(90px); opacity:.5; }
+  html.dark .aurora::before{ width:480px;height:480px; top:-120px; left:-80px; background:radial-gradient(circle,#6366f1,transparent 70%); }
+  html.dark .aurora::after{ width:520px;height:520px; bottom:-160px; right:-100px; background:radial-gradient(circle,#10b981,transparent 70%); opacity:.35; }
+  html:not(.dark) .aurora::before{ width:480px;height:480px; top:-160px; left:-60px; background:radial-gradient(circle,#c7d2fe,transparent 70%); }
+
+  /* Glass surface */
+  .glass{ background:rgba(255,255,255,.72); border:1px solid rgba(15,23,42,.08); backdrop-filter:blur(14px); }
+  html.dark .glass{ background:rgba(24,24,27,.62); border:1px solid rgba(255,255,255,.07); }
+
+  .card{ transition:transform .2s cubic-bezier(.2,.7,.3,1), box-shadow .2s, border-color .2s; }
+  .card:hover{ transform:translateY(-3px); box-shadow:0 24px 48px -24px rgba(79,70,229,.45); border-color:rgba(99,102,241,.4); }
+
+  input,select,button{ transition:all .18s ease; }
+  *:focus-visible{ outline:2px solid #6366f1; outline-offset:2px; border-radius:.5rem; }
+
+  #map{ height:300px; border-radius:1rem; z-index:0; }
+  html.dark .leaflet-tile{ filter:none; }
+
+  .spin{ width:18px;height:18px;border:2px solid rgba(99,102,241,.25);border-top-color:#6366f1;border-radius:50%;animation:sp .7s linear infinite;display:inline-block; }
+  @keyframes sp{ to{transform:rotate(360deg)} }
+  .skel{ position:relative; overflow:hidden; background:rgba(120,120,135,.12); }
+  .skel::after{ content:''; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg,transparent,rgba(255,255,255,.10),transparent); animation:shimmer 1.4s infinite; }
+  @keyframes shimmer{ 100%{transform:translateX(100%)} }
+
+  summary{ list-style:none; cursor:pointer; }
+  summary::-webkit-details-marker{ display:none; }
+  details>div{ animation:fadeup .2s ease both; }
+  @media (prefers-reduced-motion: reduce){ *{ animation:none!important; transition:none!important; } }
+  ::-webkit-scrollbar{ width:10px;height:10px } ::-webkit-scrollbar-thumb{ background:rgba(120,120,135,.35);border-radius:9999px }
+</style>
+</head>
+<body class="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 selection:bg-brand-500/30">
+<div class="aurora"></div>
+
+<!-- ░░ Header ░░ -->
+<header class="sticky top-0 z-30 glass border-b border-black/5 dark:border-white/5">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+    <div class="flex items-center gap-3 min-w-0">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-violet-500 grid place-items-center shadow-lg shadow-brand-500/30 shrink-0">
+        <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m13 2-3 7h6l-3 7"/><circle cx="12" cy="20" r="1.4"/></svg>
+      </div>
+      <div class="min-w-0">
+        <div class="font-display font-bold tracking-tight leading-none" id="title">LeadGen</div>
+        <div class="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">geo leads · n8n automations</div>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <nav class="flex bg-black/5 dark:bg-white/5 rounded-xl p-1 text-sm">
+        <button data-tab="search" class="tabbtn px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5"><span class="ic" data-ic="search"></span><span data-i="tab_search">Пошук</span></button>
+        <button data-tab="saved" class="tabbtn px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5"><span class="ic" data-ic="heart"></span><span data-i="tab_saved">Збережені</span><span id="savedCount" class="text-xs opacity-60"></span></button>
+      </nav>
+      <select id="lang" class="bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-xl px-2.5 py-2 text-sm font-medium cursor-pointer">
+        <option value="uk">🇺🇦 UA</option><option value="ru">RU</option><option value="en">EN</option>
+      </select>
+      <button id="theme" class="w-10 h-10 grid place-items-center rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800" title="Theme">
+        <span class="ic" data-ic="moon"></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 grid lg:grid-cols-[330px_1fr] gap-5">
+
+  <!-- ░░ Sidebar ░░ -->
+  <aside class="space-y-4 lg:sticky lg:top-[84px] lg:self-start">
+    <!-- Search panel -->
+    <div class="glass rounded-2xl p-5 space-y-3.5">
+      <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+        <span class="ic" data-ic="search"></span><span data-i="search">Пошук</span>
+      </div>
+      <div>
+        <label class="block text-xs mb-1 text-zinc-500 dark:text-zinc-400" data-i="category">Категорія</label>
+        <input id="category" list="cats" class="w-full bg-white dark:bg-zinc-900/70 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm" value="restaurant" placeholder="restaurant / ресторан">
+        <datalist id="cats"></datalist>
+      </div>
+      <div>
+        <label class="block text-xs mb-1 text-zinc-500 dark:text-zinc-400" data-i="city">Місто</label>
+        <input id="city" class="w-full bg-white dark:bg-zinc-900/70 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm" value="Львів">
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <div><label class="block text-xs mb-1 text-zinc-500 dark:text-zinc-400" data-i="country">Країна</label>
+          <input id="country" class="w-full bg-white dark:bg-zinc-900/70 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm" value="Ukraine"></div>
+        <div><label class="block text-xs mb-1 text-zinc-500 dark:text-zinc-400" data-i="limit">Кількість</label>
+          <input id="limit" type="number" min="1" max="60" class="w-full bg-white dark:bg-zinc-900/70 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm" value="15"></div>
+      </div>
+      <label class="flex items-center gap-2.5 text-sm cursor-pointer select-none">
+        <input type="checkbox" id="enrich" checked class="peer sr-only">
+        <span class="w-9 h-5 rounded-full bg-zinc-300 dark:bg-zinc-700 peer-checked:bg-brand-500 relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition peer-checked:after:translate-x-4"></span>
+        <span data-i="enrich" class="text-zinc-600 dark:text-zinc-300">Збагачувати контакти</span>
+      </label>
+      <div>
+        <label class="block text-xs mb-1 text-zinc-500 dark:text-zinc-400" data-i="source">Джерело</label>
+        <select id="source" class="w-full bg-white dark:bg-zinc-900/70 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm cursor-pointer">
+          <option value="osm">OpenStreetMap — швидко, безкоштовно</option>
+          <option value="gmaps">Google Maps — рейтинги, відгуки, сайти</option>
+        </select>
+      </div>
+      <button id="runCity" class="w-full bg-gradient-to-r from-brand-600 to-violet-600 hover:from-brand-500 hover:to-violet-500 text-white rounded-xl px-4 py-3 font-semibold shadow-lg shadow-brand-600/25 flex items-center justify-center gap-2">
+        <span class="ic" data-ic="search"></span><span data-i="run">Знайти лідів</span>
+      </button>
+    </div>
+
+    <!-- Map panel -->
+    <div class="glass rounded-2xl p-5 space-y-3">
+      <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+        <span class="ic" data-ic="pin"></span><span data-i="map_title">Пошук на карті</span>
+      </div>
+      <p class="text-xs text-zinc-500 dark:text-zinc-400" data-i="map_hint">Клікніть на карті, щоб обрати точку.</p>
+      <div id="map"></div>
+      <div class="flex items-center gap-3">
+        <input id="radius" type="range" min="500" max="8000" step="500" value="2000" class="flex-1 accent-emerald-500">
+        <span id="radiusLabel" class="text-xs font-medium text-zinc-500 dark:text-zinc-400 w-14 text-right tabular-nums">2.0 km</span>
+      </div>
+      <button id="runMap" disabled class="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl px-4 py-3 font-semibold shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2">
+        <span class="ic" data-ic="pin"></span><span data-i="search_here">Шукати тут</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ░░ Results column ░░ -->
+  <section class="min-w-0">
+    <!-- Filter bar -->
+    <div class="flex flex-wrap items-center gap-2 mb-4">
+      <span class="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mr-1 flex items-center gap-1.5"><span class="ic" data-ic="filter"></span><span data-i="filters">Фільтри</span></span>
+      <button class="filterchip" data-f="email"  data-ic="mail"   data-i="f_email">email</button>
+      <button class="filterchip" data-f="phone"  data-ic="phone"  data-i="f_phone">телефон</button>
+      <button class="filterchip" data-f="linkedin" data-ic="link" data-i="f_linkedin">LinkedIn</button>
+      <button class="filterchip" data-f="telegram" data-ic="send" data-i="f_telegram">Telegram</button>
+      <button class="filterchip" data-f="dm"     data-ic="user"   data-i="f_dm">керівник</button>
+      <span id="status" class="ml-auto flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400 min-h-[24px]"></span>
+    </div>
+    <div id="results" class="grid sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-4"></div>
+  </section>
+</main>
+
+<script>
+// ---- SVG icon set (Lucide-style, stroke=currentColor) ----
+const ICONS={
+ search:'<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+ heart:'<path d="M19 14c1.5-1.5 3-3.3 3-5.5A4.5 4.5 0 0 0 12 6 4.5 4.5 0 0 0 2 8.5C2 10.7 3.5 12.5 5 14l7 7Z"/>',
+ pin:'<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+ mail:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>',
+ phone:'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"/>',
+ link:'<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>',
+ send:'<path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/>',
+ user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+ linkedin:'<rect x="2" y="2" width="20" height="20" rx="3"/><path d="M7 10v7M7 7v.01M11 17v-4a2 2 0 0 1 4 0v4M11 13v4"/>',
+ star:'<path d="m12 3 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.8 6.8 19.2l1-5.8-4.3-4.1 5.9-.9Z"/>',
+ trend:'<path d="M3 17l6-6 4 4 7-7"/><path d="M17 7h4v4"/>',
+ chevron:'<path d="m6 9 6 6 6-6"/>',
+ filter:'<path d="M22 3H2l8 9.5V20l4 2v-9.5L22 3Z"/>',
+ sparkle:'<path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/>',
+ moon:'<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/>',
+ sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+ ext:'<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+ empty:'<path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-7L9 4H5a2 2 0 0 0-2 2Z"/>',
+};
+function svg(name,cls='w-4 h-4'){return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]||''}</svg>`;}
+document.querySelectorAll('[data-ic]').forEach(el=>el.innerHTML=svg(el.dataset.ic, el.classList.contains('ic')?'w-4 h-4':'w-5 h-5'));
+
+// ---- i18n ----
+const UI={
+ uk:{title:"LeadGen",tab_search:"Пошук",tab_saved:"Збережені",search:"Пошук",category:"Категорія",city:"Місто",country:"Країна",limit:"Кількість",enrich:"Збагачувати контакти",run:"Знайти лідів",map_title:"Пошук на карті",map_hint:"Клікніть на карті, щоб обрати точку.",search_here:"Шукати тут",filters:"Фільтри",f_email:"email",f_phone:"телефон",f_linkedin:"LinkedIn",f_telegram:"Telegram",f_dm:"керівник",loading:"Шукаю…",found:(n,t)=>`Показано ${n} з ${t}`,none:"Нічого не знайдено",dm:"Керівники",autos:"Наші пропозиції",templates:"Готові n8n шаблони",staff:"Команда",founded:"Засновано",source:"Джерело",emp:"співробітників",save:"Зберегти",saved:"Збережено",empty_saved:"Ще нічого не збережено. Натисніть ♥ на картці."},
+ ru:{title:"LeadGen",tab_search:"Поиск",tab_saved:"Сохранённые",search:"Поиск",category:"Категория",city:"Город",country:"Страна",limit:"Количество",enrich:"Обогащать контакты",run:"Найти лидов",map_title:"Поиск на карте",map_hint:"Кликните на карте, чтобы выбрать точку.",search_here:"Искать здесь",filters:"Фильтры",f_email:"email",f_phone:"телефон",f_linkedin:"LinkedIn",f_telegram:"Telegram",f_dm:"руководитель",loading:"Ищу…",found:(n,t)=>`Показано ${n} из ${t}`,none:"Ничего не найдено",dm:"Руководители",autos:"Наши предложения",templates:"Готовые n8n шаблоны",staff:"Команда",founded:"Основано",source:"Источник",emp:"сотрудников",save:"Сохранить",saved:"Сохранено",empty_saved:"Пока ничего не сохранено. Нажмите ♥ на карточке."},
+ en:{title:"LeadGen",tab_search:"Search",tab_saved:"Saved",search:"Search",category:"Category",city:"City",country:"Country",limit:"Limit",enrich:"Enrich contacts",run:"Find leads",map_title:"Search on map",map_hint:"Click the map to pick a point.",search_here:"Search here",filters:"Filters",f_email:"email",f_phone:"phone",f_linkedin:"LinkedIn",f_telegram:"Telegram",f_dm:"exec",loading:"Searching…",found:(n,t)=>`Showing ${n} of ${t}`,none:"No results",dm:"Decision makers",autos:"Our offers",templates:"Ready n8n templates",staff:"Team",founded:"Founded",source:"Source",emp:"employees",save:"Save",saved:"Saved",empty_saved:"Nothing saved yet. Tap ♥ on a card."}
+};
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+let lang=localStorage.getItem('lg_lang')||'uk', tab='search', lastLeads=[], savedLeads=[], picked=null, marker=null, circle=null, tiles=null;
+const filters={email:false,phone:false,linkedin:false,telegram:false,dm:false};
+
+function applyLang(){const u=UI[lang];document.documentElement.lang=lang;$('#lang').value=lang;
+ $$('[data-i]').forEach(el=>{const v=u[el.dataset.i]; if(typeof v==='string')el.textContent=v;});
+ paintTabs();renderCurrent();}
+$('#lang').onchange=e=>{lang=e.target.value;localStorage.setItem('lg_lang',lang);applyLang();};
+
+// ---- theme ----
+function setTheme(dark){document.documentElement.classList.toggle('dark',dark);localStorage.setItem('lg_theme',dark?'dark':'light');
+ $('#theme').querySelector('svg')?.remove(); $('#theme').insertAdjacentHTML('beforeend',svg(dark?'moon':'sun','w-5 h-5'));
+ if(tiles){tiles.remove();tiles=L.tileLayer(dark?darkTiles:lightTiles,{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);}}
+$('#theme').onclick=()=>setTheme(!document.documentElement.classList.contains('dark'));
+
+// ---- tabs ----
+function paintTabs(){$$('.tabbtn').forEach(b=>{const on=b.dataset.tab===tab;
+ b.classList.toggle('bg-white',on);b.classList.toggle('dark:bg-zinc-800',on);b.classList.toggle('shadow',on);b.classList.toggle('text-brand-600',on);b.classList.toggle('dark:text-white',on);
+ b.classList.toggle('text-zinc-500',!on);});}
+$$('.tabbtn').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;paintTabs();tab==='saved'?loadSaved():renderCurrent();});
+
+// ---- filters ----
+function paintChips(){$$('.filterchip').forEach(c=>{const on=filters[c.dataset.f];
+ c.className='filterchip inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border cursor-pointer '+
+  (on?'bg-brand-500 text-white border-brand-500 shadow-sm shadow-brand-500/30':'bg-white/60 dark:bg-white/5 text-zinc-600 dark:text-zinc-300 border-black/10 dark:border-white/10 hover:border-brand-400');});}
+$$('.filterchip').forEach(c=>{c.insertAdjacentHTML('afterbegin',svg(c.dataset.ic,'w-3.5 h-3.5'));
+ c.onclick=()=>{filters[c.dataset.f]=!filters[c.dataset.f];paintChips();renderCurrent();};});
+
+function leadPasses(l){const en=l.enrichment||{},s=en.socials||{};
+ if(filters.email&&!(en.emails||[]).length)return false;
+ if(filters.phone&&!(en.phones||[]).length)return false;
+ if(filters.linkedin&&!s.linkedin)return false;
+ if(filters.telegram&&!(en.telegram||[]).length)return false;
+ if(filters.dm&&!(en.decision_makers||[]).length)return false;
+ return true;}
+
+function renderCurrent(){const base=tab==='saved'?savedLeads:lastLeads;const vis=base.filter(leadPasses);
+ render(vis,base.length);}
+
+// ---- card ----
+function chip(html,cls){return `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${cls}">${html}</span>`;}
+function card(l){const u=UI[lang],c=l.company||{},en=l.enrichment||{};
+ const emails=(en.emails||[]).slice(0,2),phones=(en.phones||[]).slice(0,2);
+ const socials=Object.entries(en.socials||{}).map(([k,v])=>`<a href="${esc(v)}" target="_blank" rel="noopener" class="px-2 py-1 rounded-lg text-[11px] font-medium bg-black/5 dark:bg-white/5 text-zinc-600 dark:text-zinc-300 hover:bg-brand-500/15 hover:text-brand-500 capitalize">${esc(k)}</a>`).join('');
+ const tg=(en.telegram||[]).map(h=>chip(svg('send','w-3 h-3')+'@'+esc(h),'bg-sky-500/15 text-sky-500')).join('');
+ const dm=(en.decision_makers||[]).slice(0,3).map(p=>{
+   const li=p.linkedin?`<a href="${esc(p.linkedin)}" target="_blank" rel="noopener" class="text-sky-500 hover:text-sky-400" title="LinkedIn">${svg('linkedin','w-3.5 h-3.5')}</a>`
+     :(p.linkedin_search?`<a href="${esc(p.linkedin_search)}" target="_blank" rel="noopener" class="text-zinc-400 hover:text-sky-500" title="LinkedIn search">${svg('linkedin','w-3.5 h-3.5')}</a>`:'');
+   return `<div class="flex items-center gap-1.5 text-sm">${svg('user','w-3.5 h-3.5 text-zinc-400')}<span>${esc(p.name)}</span><span class="text-zinc-400 truncate">· ${esc(p.role)}</span>${li}</div>`;}).join('');
+ const autos=(l.automations||[]).map(a=>`
+   <div class="rounded-xl bg-brand-500/[.07] dark:bg-brand-500/10 border border-brand-500/15 p-2.5">
+     <div class="flex items-center justify-between gap-2"><b class="text-sm text-brand-700 dark:text-brand-400">${esc(a.name)}</b>
+       <span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-brand-500 text-white tabular-nums">${a.score}</span></div>
+     <div class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-snug">${esc(a.pitch)}</div></div>`).join('');
+ const p=en.profile||{};
+ const bandColor={micro:'bg-zinc-500/15 text-zinc-500',small:'bg-sky-500/15 text-sky-500',medium:'bg-amber-500/15 text-amber-500',large:'bg-emerald-500/15 text-emerald-500'}[p.size_band]||'';
+ const sizeBand=p.size_band||c.size_band;
+ const sizeC={micro:'bg-zinc-500/15 text-zinc-500',small:'bg-sky-500/15 text-sky-500',medium:'bg-amber-500/15 text-amber-500',large:'bg-emerald-500/15 text-emerald-500'}[sizeBand]||'';
+ const sig=en.signals||{};
+ const profChips=[
+   c.rating?chip(svg('star','w-3 h-3 text-amber-400')+c.rating+(c.reviews?` · ${c.reviews>999?(c.reviews/1000).toFixed(1)+'K':c.reviews}`:''),'bg-amber-500/10 text-amber-600 dark:text-amber-400'):'',
+   (p.employees||sizeBand)?chip(svg('user','w-3 h-3')+(p.employees?esc(p.employees)+' '+u.emp:esc(sizeBand)),sizeC||'bg-black/5 dark:bg-white/5 text-zinc-500'):'',
+   sig.hiring?chip(svg('trend','w-3 h-3')+(sig.open_positions?sig.open_positions+' ':'' )+(lang==='en'?'hiring':lang==='ru'?'наём':'наймає'),'bg-emerald-500/15 text-emerald-500'):'',
+   p.founded?chip(esc(u.founded)+' '+esc(p.founded),'bg-black/5 dark:bg-white/5 text-zinc-500'):'',
+   (en.staff||[]).length?chip(svg('user','w-3 h-3')+(en.staff.length)+' '+esc(u.staff.toLowerCase()),'bg-black/5 dark:bg-white/5 text-zinc-500'):'',
+ ].filter(Boolean).join('');
+ const templates=(l.templates||[]).slice(0,4).map(t=>`
+   <a href="${esc(t.url)}" target="_blank" rel="noopener" class="block rounded-xl bg-violet-500/[.06] dark:bg-violet-500/10 border border-violet-500/15 p-2.5 hover:border-violet-400 group">
+     <div class="flex items-start justify-between gap-2"><b class="text-sm text-violet-700 dark:text-violet-300 leading-snug group-hover:text-violet-500">${esc(t.name)}</b>${svg('ext','w-3.5 h-3.5 text-violet-400 shrink-0 mt-0.5')}</div>
+     <div class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 truncate">${(t.nodes||[]).slice(0,4).map(esc).join(' · ')}</div></a>`).join('');
+ const liked=l._saved;
+ return `<article class="card glass rounded-2xl p-5 animate-fadeup" data-id="${esc(l._id)}">
+   <header class="flex items-start justify-between gap-3">
+     <div class="min-w-0">
+       <h3 class="font-display font-semibold leading-tight truncate">${esc(c.name)}</h3>
+       <div class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 flex items-center gap-1">${svg('pin','w-3 h-3 shrink-0')}<span class="truncate">${esc(c.address||c.city||'')}</span></div>
+     </div>
+     <button class="heart shrink-0 w-9 h-9 grid place-items-center rounded-xl border border-black/10 dark:border-white/10 hover:border-rose-400 ${liked?'text-rose-500 bg-rose-500/10 border-rose-500/40':'text-zinc-400'}" title="${liked?u.saved:u.save}">
+       <svg class="w-5 h-5" viewBox="0 0 24 24" fill="${liked?'currentColor':'none'}" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONS.heart}</svg></button>
+   </header>
+   ${profChips?`<div class="flex flex-wrap gap-1.5 mt-2.5">${profChips}</div>`:''}
+   <div class="mt-3 space-y-1.5">
+     ${emails.map(e=>`<a href="mailto:${esc(e)}" class="flex items-center gap-1.5 text-sm text-zinc-700 dark:text-zinc-200 hover:text-brand-500">${svg('mail','w-3.5 h-3.5 text-zinc-400')}<span class="truncate">${esc(e)}</span></a>`).join('')}
+     ${phones.map(p=>`<div class="flex items-center gap-1.5 text-sm">${svg('phone','w-3.5 h-3.5 text-zinc-400')}<span>${esc(p)}</span></div>`).join('')}
+     ${dm}
+   </div>
+   <div class="flex flex-wrap items-center gap-1.5 mt-2.5">
+     ${socials}${tg}
+     ${c.website?`<a href="${esc(c.website)}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium bg-black/5 dark:bg-white/5 text-zinc-600 dark:text-zinc-300 hover:text-brand-500">${svg('ext','w-3 h-3')}site</a>`:''}
+   </div>
+   ${autos?`<details open class="group mt-3.5 pt-3.5 border-t border-black/5 dark:border-white/5">
+     <summary class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+       ${svg('sparkle','w-3.5 h-3.5 text-violet-400')}${u.autos}
+       <span class="px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-500 text-[10px] tabular-nums">${(l.automations||[]).length}</span>
+       ${svg('chevron','w-3.5 h-3.5 ml-auto transition-transform duration-200 group-open:rotate-180')}</summary>
+     <div class="space-y-1.5 mt-2">${autos}</div></details>`:''}
+   ${templates?`<details class="group mt-3 pt-3 border-t border-black/5 dark:border-white/5">
+     <summary class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+       ${svg('sparkle','w-3.5 h-3.5 text-violet-400')}${u.templates}<span class="text-zinc-300 dark:text-zinc-600 normal-case font-normal">n8n.io</span>
+       <span class="px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-500 text-[10px] tabular-nums">${(l.templates||[]).length}</span>
+       ${svg('chevron','w-3.5 h-3.5 ml-auto transition-transform duration-200 group-open:rotate-180')}</summary>
+     <div class="space-y-1.5 mt-2">${templates}</div></details>`:''}
+ </article>`;}
+
+function render(leads,total){const u=UI[lang],out=$('#results');
+ if(tab==='saved'&&!savedLeads.length){out.innerHTML=emptyState(u.empty_saved);return;}
+ if(!leads.length){out.innerHTML=emptyState(u.none);}
+ else out.innerHTML=leads.map(card).join('');
+ out.querySelectorAll('.card').forEach(el=>el.querySelector('.heart').onclick=()=>toggleSave(el.dataset.id));
+ if(tab==='search'&&lastLeads.length)$('#status').textContent=u.found(leads.length,lastLeads.length);
+}
+function emptyState(msg){return `<div class="col-span-full flex flex-col items-center justify-center text-center py-16 text-zinc-400">
+ <div class="w-14 h-14 rounded-2xl bg-black/5 dark:bg-white/5 grid place-items-center mb-3">${svg('empty','w-7 h-7')}</div>
+ <p class="text-sm">${esc(msg)}</p></div>`;}
+function esc(s){return (s||'').toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+// ---- save ----
+async function toggleSave(id){const pool=tab==='saved'?savedLeads:lastLeads;const lead=pool.find(l=>l._id===id);if(!lead)return;
+ if(lead._saved){await fetch('/api/unsave',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});}
+ else{await fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lead})});}
+ const v=!lead._saved;[...lastLeads,...savedLeads].filter(l=>l._id===id).forEach(l=>l._saved=v);
+ if(tab==='saved'){savedLeads=savedLeads.filter(l=>l._saved);renderCurrent();} else renderCurrent();
+ refreshSavedCount();}
+async function loadSaved(){savedLeads=await (await fetch('/api/saved')).json();renderCurrent();}
+async function refreshSavedCount(){const d=await (await fetch('/api/saved')).json();$('#savedCount').textContent=d.length?d.length:'';}
+
+// ---- search ----
+function loadingCards(){$('#results').innerHTML=Array.from({length:4}).map(()=>`<div class="glass rounded-2xl p-5 space-y-3"><div class="skel h-5 w-2/3 rounded-md"></div><div class="skel h-3 w-1/2 rounded"></div><div class="skel h-3 w-3/4 rounded"></div><div class="skel h-14 w-full rounded-xl"></div></div>`).join('');}
+async function runSearch(url,body){const u=UI[lang];tab='search';paintTabs();
+ $('#status').innerHTML=`<span class="spin"></span>${u.loading}`;loadingCards();
+ try{const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const data=await r.json();
+  if(!r.ok){throw new Error(data&&data.error?data.error:'HTTP '+r.status);}
+  lastLeads=data;renderCurrent();
+ }catch(e){$('#status').innerHTML=`<span class="text-rose-500">⚠ ${esc(e.message||e)}</span>`;$('#results').innerHTML='';}}
+$('#runCity').onclick=()=>runSearch('/api/find',{category:category.value,city:city.value,country:country.value,limit:+limit.value,lang,enrich:enrich.checked,source:$('#source').value});
+$('#runMap').onclick=()=>picked&&runSearch('/api/find_around',{category:category.value,lat:picked.lat,lon:picked.lng,radius_m:+radius.value,limit:+limit.value,lang,enrich:enrich.checked});
+
+// ---- map ----
+const darkTiles='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+const lightTiles='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+const map=L.map('map',{zoomControl:true,attributionControl:false}).setView([49.842,24.0316],12);
+tiles=L.tileLayer(document.documentElement.classList.contains('dark')?darkTiles:lightTiles,{maxZoom:19}).addTo(map);
+$('#radius').oninput=e=>{$('#radiusLabel').textContent=(e.target.value/1000).toFixed(1)+' km';if(circle)circle.setRadius(+e.target.value);};
+map.on('click',e=>{picked=e.latlng;
+ if(marker)marker.setLatLng(e.latlng);else marker=L.marker(e.latlng).addTo(map);
+ if(circle)circle.setLatLng(e.latlng).setRadius(+radius.value);else circle=L.circle(e.latlng,{radius:+radius.value,color:'#10b981',weight:1.5,fillColor:'#10b981',fillOpacity:.12}).addTo(map);
+ $('#runMap').disabled=false;});
+
+// ---- init ----
+(async function(){
+ setTheme((localStorage.getItem('lg_theme')||'dark')==='dark');
+ const cats=await (await fetch('/api/categories')).json();
+ $('#cats').innerHTML=cats.map(c=>`<option value="${c}">`).join('');
+ paintChips();refreshSavedCount();applyLang();
+ setTimeout(()=>map.invalidateSize(),200);
+})();
+</script>
+</body></html>

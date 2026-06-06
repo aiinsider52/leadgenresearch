@@ -1,0 +1,106 @@
+# Catalog of ready-to-sell n8n AI automations.
+# Matcher scores each company's signals against `triggers` and proposes the
+# top automations. Triggers include uk/ru/en synonyms so matching works on
+# Ukrainian- and Russian-language company data.
+#
+#   pitch: localized one-liners (uk/ru/en) for outreach
+#   solves: internal note (business pain)
+#   triggers: keywords in any of the 3 languages
+#   effort: build effort for you (low|medium|high)
+
+automations:
+  - id: lead-reply-autoresponder
+    name: "AI Inbox Auto-Responder"
+    pitch:
+      uk: "Відповідає на заявки за <2 хв персоналізованими листами у стилі вашого бренду."
+      ru: "Отвечает на заявки за <2 мин персонализированными письмами в стиле вашего бренда."
+      en: "Replies to inbound leads in <2 min with personalized, on-brand emails."
+    solves: "Slow reply to inbound leads / contact-form requests"
+    triggers: [contact form, форма, заявка, звернення, обращение, inbound, email, пошта, почта, запис, запись, бронювання]
+    industries: [agency, services, b2b, retail, real_estate]
+    integrations: [Gmail/IMAP, Claude, webhook]
+    effort: low
+
+  - id: review-responder
+    name: "Google Review AI Responder"
+    pitch:
+      uk: "Автоматично відповідає на кожен відгук Google у тоні вашого бренду."
+      ru: "Автоматически отвечает на каждый отзыв Google в тоне вашего бренда."
+      en: "Auto-replies to every Google review in your brand voice."
+    solves: "Unanswered Google/Trustpilot reviews hurting local SEO"
+    triggers: [google reviews, відгуки, отзывы, репутація, репутация, reputation, restaurant, ресторан, clinic, клініка, клиника, beauty, retail]
+    industries: [restaurant, clinic, beauty, retail, hotel]
+    integrations: [Google Business Profile, Claude, scheduler]
+    effort: low
+
+  - id: booking-no-show-reducer
+    name: "Appointment Reminder + No-Show Reducer"
+    pitch:
+      uk: "Нагадування та підтвердження у Telegram/SMS — менше неявок."
+      ru: "Напоминания и подтверждения в Telegram/SMS — меньше неявок."
+      en: "Reminders + confirmations via Telegram/SMS, fewer no-shows."
+    solves: "No-shows and manual appointment confirmations"
+    triggers: [запис, запись, бронювання, бронирование, termin, appointment, calendar, клініка, клиника, salon, салон, beauty, dental, fitness]
+    industries: [clinic, beauty, dental, fitness]
+    integrations: [Calendly/Cal.com, Telegram/Twilio, scheduler]
+    effort: medium
+
+  - id: rfq-quote-generator
+    name: "AI Quote Generator"
+    pitch:
+      uk: "Зі звернення автоматично формує первинну комерційну пропозицію у PDF."
+      ru: "Из обращения автоматически формирует первичное КП в PDF."
+      en: "Turns inbound requests into a first-draft quote PDF automatically."
+    solves: "Slow, manual quoting for inbound RFQs"
+    triggers: [пропозиція, предложение, quote, кп, прорахунок, расчет, rfq, construction, будівництво, строительство, b2b, проєкт, проект]
+    industries: [construction, b2b, agency, auto]
+    integrations: [webhook, Claude, PDF, CRM]
+    effort: medium
+
+  - id: content-repurposer
+    name: "Content Repurposing Engine"
+    pitch:
+      uk: "Один допис → пости для Instagram, Telegram і розсилка автоматично."
+      ru: "Один пост → посты для Instagram, Telegram и рассылка автоматически."
+      en: "One post → Instagram, Telegram and newsletter content automatically."
+    solves: "Thin/irregular social presence, no content bandwidth"
+    triggers: [блог, blog, content, контент, social media, соцмережі, соцсети, маркетинг, marketing, instagram, inactive socials, agency]
+    industries: [agency, education, beauty, fitness, hotel]
+    integrations: [RSS/CMS, Claude, Instagram, Telegram]
+    effort: low
+
+  - id: lead-enrichment-crm
+    name: "Lead Enrichment + CRM Router"
+    pitch:
+      uk: "Кожен новий лід збагачується, оцінюється і потрапляє у CRM."
+      ru: "Каждый новый лид обогащается, оценивается и попадает в CRM."
+      en: "Every new lead gets enriched, scored and routed into your CRM."
+    solves: "Manual lead qualification and CRM data entry"
+    triggers: [crm, продажі, продажи, sales, ліди, лиды, leads, воронка, pipeline, b2b, agency, real_estate]
+    industries: [b2b, agency, real_estate, auto]
+    integrations: [webhook, Claude, HubSpot/KeyCRM/Pipedrive]
+    effort: medium
+
+  - id: faq-support-bot
+    name: "Website AI Support Assistant"
+    pitch:
+      uk: "Відповідає на питання клієнтів 24/7 на основі ваших матеріалів."
+      ru: "Отвечает на вопросы клиентов 24/7 на основе ваших материалов."
+      en: "Answers customer questions 24/7 from your own content."
+    solves: "Repetitive customer questions, no 24/7 support"
+    triggers: [підтримка, поддержка, support, faq, питання, вопросы, кліентський сервіс, клиентский сервис, retail, education, b2b]
+    industries: [retail, education, b2b, hotel]
+    integrations: [website widget, vector store, Claude]
+    effort: medium
+
+  - id: telegram-lead-bot
+    name: "Telegram Lead Capture Bot"
+    pitch:
+      uk: "Telegram-бот приймає заявки, кваліфікує і одразу пише менеджеру."
+      ru: "Telegram-бот принимает заявки, квалифицирует и сразу пишет менеджеру."
+      en: "Telegram bot captures, qualifies and routes leads to your team instantly."
+    solves: "No fast lead capture channel; Telegram-first audience"
+    triggers: [telegram, телеграм, бот, bot, заявка, ліди, лиды, leads, real_estate, нерухомість, недвижимость, auto, b2b]
+    industries: [real_estate, auto, agency, education, b2b]
+    integrations: [Telegram Bot API, Claude, CRM]
+    effort: low

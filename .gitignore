@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+data/secrets.env
+data/leads.jsonl
+data/saved.json
+data/n8n_cache/
+.venv/
