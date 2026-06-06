@@ -1,0 +1,20 @@
+# Render.com blueprint — one-click deploy of the full app (Docker).
+# In Render: New + → Blueprint → connect this repo. It reads this file.
+services:
+  - type: web
+    name: leadgenresearch
+    runtime: docker
+    plan: free               # free spins down when idle; bump to "starter" for always-on
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: "8000"
+      # Optional: set BOT_TOKEN to also run the Telegram bot logic.
+
+    # For persistent saved leads/favorites across redeploys, switch to a paid
+    # plan and uncomment (free plan does not support disks):
+    # disk:
+    #   name: leadgen-data
+    #   mountPath: /app/data
+    #   sizeGB: 1
