@@ -22,8 +22,9 @@ API = "https://api.n8n.io/templates/search"
 TEMPLATE_URL = "https://n8n.io/workflows/{id}"
 HEADERS = {"User-Agent": "leadgen/0.1"}
 
-CACHE_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "n8n_cache"
-CACHE_DIR.mkdir(parents=True, exist_ok=True)
+from ..config import data_dir
+
+CACHE_DIR = data_dir("n8n_cache")  # writable; /tmp on read-only hosts
 CACHE_TTL = 60 * 60 * 24 * 7  # 7 days
 
 # Map our company categories / pains to good n8n search terms.

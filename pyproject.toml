@@ -1,0 +1,9 @@
+[project]
+name = "leadgen"
+version = "0.1.0"
+description = "Geo lead finder + n8n automation matcher (uk/ru/en)"
+requires-python = ">=3.9"
+
+# Vercel FastAPI entrypoint (https://vercel.com/docs/frameworks/backend/fastapi)
+[tool.vercel]
+entrypoint = "leadgen.app:app"

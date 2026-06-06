@@ -18,8 +18,9 @@ from .enrich.site import enrich_site
 from .i18n import resolve_category
 from .sources.osm import Company, discover, discover_around
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
-DATA_DIR.mkdir(exist_ok=True)
+from .config import data_dir
+
+DATA_DIR = data_dir()  # writable; falls back to /tmp on read-only hosts (Vercel)
 LEADS_FILE = DATA_DIR / "leads.jsonl"
 SAVED_FILE = DATA_DIR / "saved.json"
 

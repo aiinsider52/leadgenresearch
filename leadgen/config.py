@@ -28,3 +28,23 @@ def _load() -> dict[str, str]:
 
 def get(key: str, default: str | None = None) -> str | None:
     return os.environ.get(key) or _load().get(key) or default
+
+
+def data_dir(sub: str = "") -> Path:
+    """Return a writable data directory.
+
+    On serverless hosts (Vercel) the project FS is read-only except /tmp, so
+    fall back there. Locally it stays alongside the project.
+    """
+    base = Path(__file__).resolve().parent.parent / "data"
+    try:
+        base.mkdir(parents=True, exist_ok=True)
+        (base / ".write_test").touch()
+        (base / ".write_test").unlink()
+    except OSError:
+        base = Path("/tmp/leadgen_data")
+        base.mkdir(parents=True, exist_ok=True)
+    target = base / sub if sub else base
+    if sub:
+        target.mkdir(parents=True, exist_ok=True)
+    return target
