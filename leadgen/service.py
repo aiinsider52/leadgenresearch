@@ -136,9 +136,13 @@ def find_leads(
     companies = []
     if source == "gmaps":
         # Live Google Maps via headless browser — works worldwide incl. Ukraine.
+        # Search with the user's RAW phrase ("marketing agency"), not the slug,
+        # so Google's keyword search returns exactly what they typed.
         try:
             from .sources.gmaps_playwright import discover_gmaps_pw
-            companies = discover_gmaps_pw(category, city, country=country, limit=limit)
+            companies = discover_gmaps_pw(category_label, city, country=country, limit=limit)
+            for c in companies:        # keep slug for matching/templates
+                c.category = category
         except Exception as exc:
             if progress:
                 progress(f"gmaps_failed:{exc}")

@@ -66,7 +66,8 @@ CATEGORY_LABELS: dict[str, str] = {
     # retail
     "магазин": "retail", "ритейл": "retail", "retail": "retail", "shop": "retail",
     # agency
-    "агенція": "agency", "агентство": "agency", "agency": "agency", "маркетинг": "agency",
+    "агенція": "agency", "агентство": "agency", "agency": "agency",
+    "маркетинг": "agency", "marketing": "agency", "smm": "agency", "діджитал": "agency",
     # construction
     "будівництво": "construction", "строительство": "construction", "ремонт": "construction", "construction": "construction",
     # education

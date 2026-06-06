@@ -33,7 +33,9 @@ CATEGORY_TAGS: dict[str, list[str]] = {
     "auto": ['shop~"car|car_repair|tyres"'],
     "hotel": ['tourism~"hotel|guest_house|hostel"'],
     "retail": ['shop~"clothes|shoes|jewelry|gift|furniture"'],
-    "agency": ['office~"advertising_agency|company|it|consulting"'],
+    # Dropped office=company (a catch-all that returned every company office,
+    # not actual agencies). OSM is sparse for agencies — prefer the gmaps source.
+    "agency": ['office~"advertising_agency|marketing|consulting|it"'],
     "construction": ['craft~"builder|carpenter|electrician|plumber"', 'office="construction_company"'],
     "education": ['amenity~"school|language_school|college"', 'office="educational_institution"'],
 }
