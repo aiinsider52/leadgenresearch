@@ -9,20 +9,25 @@ import os
 from pathlib import Path
 
 _SECRETS = Path(__file__).resolve().parent.parent / "data" / "secrets.env"
-_cache: dict[str, str] | None = None
+_cache: dict[str, str] = {}
+_cache_mtime: float = -1.0
 
 
 def _load() -> dict[str, str]:
-    global _cache
-    if _cache is not None:
-        return _cache
-    _cache = {}
-    if _SECRETS.exists():
+    """Read secrets.env, re-reading when the file changes (so a token added
+    while the server runs is picked up without a restart)."""
+    global _cache, _cache_mtime
+    if not _SECRETS.exists():
+        return {}
+    mtime = _SECRETS.stat().st_mtime
+    if mtime != _cache_mtime:
+        parsed: dict[str, str] = {}
         for line in _SECRETS.read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:
                 k, v = line.split("=", 1)
-                _cache[k.strip()] = v.strip()
+                parsed[k.strip()] = v.strip()
+        _cache, _cache_mtime = parsed, mtime
     return _cache
 
 
