@@ -83,6 +83,8 @@ tailwind.config = {
         <button data-tab="search" class="tabbtn px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5"><span class="ic" data-ic="search"></span><span data-i="tab_search">Пошук</span></button>
         <button data-tab="saved" class="tabbtn px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5"><span class="ic" data-ic="heart"></span><span data-i="tab_saved">Збережені</span><span id="savedCount" class="text-xs opacity-60"></span></button>
       </nav>
+      <span id="aiPill" class="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium border"></span>
+      <button id="exportBtn" class="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-sm font-medium" title="CSV"><span class="ic" data-ic="download"></span><span data-i="export">Експорт CSV</span></button>
       <select id="lang" class="bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-xl px-2.5 py-2 text-sm font-medium cursor-pointer">
         <option value="uk">🇺🇦 UA</option><option value="ru">RU</option><option value="en">EN</option>
       </select>
@@ -161,11 +163,54 @@ tailwind.config = {
       <button class="filterchip" data-f="linkedin" data-ic="link" data-i="f_linkedin">LinkedIn</button>
       <button class="filterchip" data-f="telegram" data-ic="send" data-i="f_telegram">Telegram</button>
       <button class="filterchip" data-f="dm"     data-ic="user"   data-i="f_dm">керівник</button>
-      <span id="status" class="ml-auto flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400 min-h-[24px]"></span>
+      <select id="sort" class="ml-auto bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-medium cursor-pointer">
+        <option value="score" data-i="sort_score">За рейтингом ліда</option>
+        <option value="reviews" data-i="sort_reviews">За відгуками</option>
+        <option value="default" data-i="sort_default">За замовчуванням</option>
+      </select>
+      <span id="status" class="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400 min-h-[24px]"></span>
     </div>
     <div id="results" class="grid sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-4"></div>
   </section>
 </main>
+
+<!-- ░░ Outreach drawer ░░ -->
+<div id="drawer" class="fixed inset-0 z-50 hidden">
+  <div id="drawerBg" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+  <aside class="absolute right-0 top-0 h-full w-full max-w-lg bg-zinc-50 dark:bg-zinc-950 border-l border-black/10 dark:border-white/10 overflow-y-auto shadow-2xl">
+    <header class="sticky top-0 glass border-b border-black/5 dark:border-white/5 px-5 py-4 flex items-center justify-between z-10">
+      <div class="min-w-0">
+        <div class="font-display font-bold truncate" id="dwName">—</div>
+        <div class="text-xs text-zinc-500 dark:text-zinc-400 truncate" id="dwSub"></div>
+      </div>
+      <button id="dwClose" class="w-9 h-9 grid place-items-center rounded-xl border border-black/10 dark:border-white/10 hover:bg-zinc-100 dark:hover:bg-zinc-800"><span class="ic" data-ic="close"></span></button>
+    </header>
+    <div class="p-5 space-y-5">
+      <!-- analysis -->
+      <section>
+        <div class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-2">${''}<span class="ic text-violet-400" data-ic="bolt"></span><span data-i="analysis">Аналіз компанії</span></div>
+        <div id="dwAnalysis" class="text-sm whitespace-pre-wrap rounded-xl bg-black/[.03] dark:bg-white/[.04] border border-black/5 dark:border-white/5 p-3 text-zinc-700 dark:text-zinc-200 min-h-[60px]"></div>
+      </section>
+      <!-- message -->
+      <section>
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-400"><span class="ic text-violet-400" data-ic="pen"></span><span data-i="message">Повідомлення</span></div>
+          <select id="dwPerson" class="text-xs bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-lg px-2 py-1"></select>
+        </div>
+        <div class="flex gap-1 mb-2" id="dwChannels">
+          <button data-ch="email" class="chtab flex-1 py-1.5 rounded-lg text-xs font-medium border">Email</button>
+          <button data-ch="linkedin" class="chtab flex-1 py-1.5 rounded-lg text-xs font-medium border">LinkedIn</button>
+          <button data-ch="telegram" class="chtab flex-1 py-1.5 rounded-lg text-xs font-medium border">Telegram</button>
+        </div>
+        <textarea id="dwMsg" rows="9" class="w-full bg-white dark:bg-zinc-900/70 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm resize-y" placeholder=""></textarea>
+        <div class="flex gap-2 mt-2">
+          <button id="dwGen" class="flex-1 bg-gradient-to-r from-brand-600 to-violet-600 hover:from-brand-500 hover:to-violet-500 text-white rounded-xl px-4 py-2.5 text-sm font-semibold flex items-center justify-center gap-2"><span class="ic" data-ic="bolt"></span><span data-i="regen">Згенерувати ще раз</span></button>
+          <button id="dwCopy" class="px-4 py-2.5 rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-sm font-medium flex items-center gap-1.5"><span class="ic" data-ic="copy"></span><span data-i="copy">Копіювати</span></button>
+        </div>
+      </section>
+    </div>
+  </aside>
+</div>
 
 <script>
 // ---- SVG icon set (Lucide-style, stroke=currentColor) ----
@@ -182,6 +227,11 @@ const ICONS={
  star:'<path d="m12 3 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.8 6.8 19.2l1-5.8-4.3-4.1 5.9-.9Z"/>',
  trend:'<path d="M3 17l6-6 4 4 7-7"/><path d="M17 7h4v4"/>',
  chevron:'<path d="m6 9 6 6 6-6"/>',
+ pen:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+ copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
+ close:'<path d="M18 6 6 18M6 6l12 12"/>',
+ download:'<path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 21h14"/>',
+ bolt:'<path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/>',
  filter:'<path d="M22 3H2l8 9.5V20l4 2v-9.5L22 3Z"/>',
  sparkle:'<path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/>',
  moon:'<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/>',
@@ -194,17 +244,18 @@ document.querySelectorAll('[data-ic]').forEach(el=>el.innerHTML=svg(el.dataset.i
 
 // ---- i18n ----
 const UI={
- uk:{title:"LeadGen",tab_search:"Пошук",tab_saved:"Збережені",search:"Пошук",category:"Категорія",city:"Місто",country:"Країна",limit:"Кількість",enrich:"Збагачувати контакти",run:"Знайти лідів",map_title:"Пошук на карті",map_hint:"Клікніть на карті, щоб обрати точку.",search_here:"Шукати тут",filters:"Фільтри",f_email:"email",f_phone:"телефон",f_linkedin:"LinkedIn",f_telegram:"Telegram",f_dm:"керівник",loading:"Шукаю…",found:(n,t)=>`Показано ${n} з ${t}`,none:"Нічого не знайдено",dm:"Керівники",autos:"Наші пропозиції",templates:"Готові n8n шаблони",staff:"Команда",founded:"Засновано",source:"Джерело",emp:"співробітників",save:"Зберегти",saved:"Збережено",empty_saved:"Ще нічого не збережено. Натисніть ♥ на картці."},
- ru:{title:"LeadGen",tab_search:"Поиск",tab_saved:"Сохранённые",search:"Поиск",category:"Категория",city:"Город",country:"Страна",limit:"Количество",enrich:"Обогащать контакты",run:"Найти лидов",map_title:"Поиск на карте",map_hint:"Кликните на карте, чтобы выбрать точку.",search_here:"Искать здесь",filters:"Фильтры",f_email:"email",f_phone:"телефон",f_linkedin:"LinkedIn",f_telegram:"Telegram",f_dm:"руководитель",loading:"Ищу…",found:(n,t)=>`Показано ${n} из ${t}`,none:"Ничего не найдено",dm:"Руководители",autos:"Наши предложения",templates:"Готовые n8n шаблоны",staff:"Команда",founded:"Основано",source:"Источник",emp:"сотрудников",save:"Сохранить",saved:"Сохранено",empty_saved:"Пока ничего не сохранено. Нажмите ♥ на карточке."},
- en:{title:"LeadGen",tab_search:"Search",tab_saved:"Saved",search:"Search",category:"Category",city:"City",country:"Country",limit:"Limit",enrich:"Enrich contacts",run:"Find leads",map_title:"Search on map",map_hint:"Click the map to pick a point.",search_here:"Search here",filters:"Filters",f_email:"email",f_phone:"phone",f_linkedin:"LinkedIn",f_telegram:"Telegram",f_dm:"exec",loading:"Searching…",found:(n,t)=>`Showing ${n} of ${t}`,none:"No results",dm:"Decision makers",autos:"Our offers",templates:"Ready n8n templates",staff:"Team",founded:"Founded",source:"Source",emp:"employees",save:"Save",saved:"Saved",empty_saved:"Nothing saved yet. Tap ♥ on a card."}
+ uk:{title:"LeadGen",tab_search:"Пошук",tab_saved:"Збережені",search:"Пошук",category:"Категорія",city:"Місто",country:"Країна",limit:"Кількість",enrich:"Збагачувати контакти",run:"Знайти лідів",map_title:"Пошук на карті",map_hint:"Клікніть на карті, щоб обрати точку.",search_here:"Шукати тут",filters:"Фільтри",f_email:"email",f_phone:"телефон",f_linkedin:"LinkedIn",f_telegram:"Telegram",f_dm:"керівник",loading:"Шукаю…",found:(n,t)=>`Показано ${n} з ${t}`,none:"Нічого не знайдено",dm:"Керівники",autos:"Наші пропозиції",templates:"Готові n8n шаблони",staff:"Команда",founded:"Засновано",source:"Джерело",emp:"співробітників",save:"Зберегти",saved:"Збережено",empty_saved:"Ще нічого не збережено. Натисніть ♥ на картці.",write_msg:"Згенерувати повідомлення",analysis:"Аналіз компанії",message:"Повідомлення",gen:"Згенерувати",regen:"Згенерувати ще раз",copy:"Копіювати",copied:"Скопійовано ✓",export:"Експорт CSV",ai_on:"AI увімкнено",ai_off:"AI вимкнено (шаблони)",contact:"Контакт",sort:"Сортування",sort_score:"За рейтингом ліда",sort_reviews:"За відгуками",sort_default:"За замовчуванням"},
+ ru:{title:"LeadGen",tab_search:"Поиск",tab_saved:"Сохранённые",search:"Поиск",category:"Категория",city:"Город",country:"Страна",limit:"Количество",enrich:"Обогащать контакты",run:"Найти лидов",map_title:"Поиск на карте",map_hint:"Кликните на карте, чтобы выбрать точку.",search_here:"Искать здесь",filters:"Фильтры",f_email:"email",f_phone:"телефон",f_linkedin:"LinkedIn",f_telegram:"Telegram",f_dm:"руководитель",loading:"Ищу…",found:(n,t)=>`Показано ${n} из ${t}`,none:"Ничего не найдено",dm:"Руководители",autos:"Наши предложения",templates:"Готовые n8n шаблоны",staff:"Команда",founded:"Основано",source:"Источник",emp:"сотрудников",save:"Сохранить",saved:"Сохранено",empty_saved:"Пока ничего не сохранено. Нажмите ♥ на карточке.",write_msg:"Сгенерировать сообщение",analysis:"Анализ компании",message:"Сообщение",gen:"Сгенерировать",regen:"Сгенерировать ещё раз",copy:"Копировать",copied:"Скопировано ✓",export:"Экспорт CSV",ai_on:"AI включён",ai_off:"AI выключен (шаблоны)",contact:"Контакт",sort:"Сортировка",sort_score:"По рейтингу лида",sort_reviews:"По отзывам",sort_default:"По умолчанию"},
+ en:{title:"LeadGen",tab_search:"Search",tab_saved:"Saved",search:"Search",category:"Category",city:"City",country:"Country",limit:"Limit",enrich:"Enrich contacts",run:"Find leads",map_title:"Search on map",map_hint:"Click the map to pick a point.",search_here:"Search here",filters:"Filters",f_email:"email",f_phone:"phone",f_linkedin:"LinkedIn",f_telegram:"Telegram",f_dm:"exec",loading:"Searching…",found:(n,t)=>`Showing ${n} of ${t}`,none:"No results",dm:"Decision makers",autos:"Our offers",templates:"Ready n8n templates",staff:"Team",founded:"Founded",source:"Source",emp:"employees",save:"Save",saved:"Saved",empty_saved:"Nothing saved yet. Tap ♥ on a card.",write_msg:"Generate message",analysis:"Company analysis",message:"Message",gen:"Generate",regen:"Regenerate",copy:"Copy",copied:"Copied ✓",export:"Export CSV",ai_on:"AI on",ai_off:"AI off (templates)",contact:"Contact",sort:"Sort",sort_score:"By lead score",sort_reviews:"By reviews",sort_default:"Default"}
 };
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
-let lang=localStorage.getItem('lg_lang')||'uk', tab='search', lastLeads=[], savedLeads=[], picked=null, marker=null, circle=null, tiles=null;
+let lang=localStorage.getItem('lg_lang')||'uk', tab='search', lastLeads=[], savedLeads=[], picked=null, marker=null, circle=null, tiles=null, sortMode='score';
 const filters={email:false,phone:false,linkedin:false,telegram:false,dm:false};
 
 function applyLang(){const u=UI[lang];document.documentElement.lang=lang;$('#lang').value=lang;
  $$('[data-i]').forEach(el=>{const v=u[el.dataset.i]; if(typeof v==='string')el.textContent=v;});
- paintTabs();renderCurrent();}
+ const sortSel=$('#sort');if(sortSel)sortSel.value=sortMode;
+ paintTabs();refreshAi();renderCurrent();}
 $('#lang').onchange=e=>{lang=e.target.value;localStorage.setItem('lg_lang',lang);applyLang();};
 
 // ---- theme ----
@@ -225,6 +276,7 @@ function paintChips(){$$('.filterchip').forEach(c=>{const on=filters[c.dataset.f
   (on?'bg-brand-500 text-white border-brand-500 shadow-sm shadow-brand-500/30':'bg-white/60 dark:bg-white/5 text-zinc-600 dark:text-zinc-300 border-black/10 dark:border-white/10 hover:border-brand-400');});}
 $$('.filterchip').forEach(c=>{c.insertAdjacentHTML('afterbegin',svg(c.dataset.ic,'w-3.5 h-3.5'));
  c.onclick=()=>{filters[c.dataset.f]=!filters[c.dataset.f];paintChips();renderCurrent();};});
+$('#sort').onchange=e=>{sortMode=e.target.value;renderCurrent();};
 
 function leadPasses(l){const en=l.enrichment||{},s=en.socials||{};
  if(filters.email&&!(en.emails||[]).length)return false;
@@ -234,7 +286,9 @@ function leadPasses(l){const en=l.enrichment||{},s=en.socials||{};
  if(filters.dm&&!(en.decision_makers||[]).length)return false;
  return true;}
 
-function renderCurrent(){const base=tab==='saved'?savedLeads:lastLeads;const vis=base.filter(leadPasses);
+function renderCurrent(){const base=tab==='saved'?savedLeads:lastLeads;let vis=base.filter(leadPasses);
+ if(sortMode==='score')vis=[...vis].sort((a,b)=>((b.score||{}).score||0)-((a.score||{}).score||0));
+ else if(sortMode==='reviews')vis=[...vis].sort((a,b)=>((b.company||{}).reviews||0)-((a.company||{}).reviews||0));
  render(vis,base.length);}
 
 // ---- card ----
@@ -269,14 +323,21 @@ function card(l){const u=UI[lang],c=l.company||{},en=l.enrichment||{};
      <div class="flex items-start justify-between gap-2"><b class="text-sm text-violet-700 dark:text-violet-300 leading-snug group-hover:text-violet-500">${esc(t.name)}</b>${svg('ext','w-3.5 h-3.5 text-violet-400 shrink-0 mt-0.5')}</div>
      <div class="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 truncate">${(t.nodes||[]).slice(0,4).map(esc).join(' · ')}</div></a>`).join('');
  const liked=l._saved;
+ const sc=l.score||{}; const tierC={hot:'bg-rose-500',warm:'bg-amber-500',cold:'bg-zinc-400 dark:bg-zinc-600'}[sc.tier]||'bg-zinc-400';
+ const tierLabel={hot:{uk:'гарячий',ru:'горячий',en:'hot'},warm:{uk:'теплий',ru:'тёплый',en:'warm'},cold:{uk:'холодний',ru:'холодный',en:'cold'}}[sc.tier]?.[lang]||'';
+ const scoreBadge=sc.score!=null?`<div class="shrink-0 flex flex-col items-center justify-center w-12 h-12 rounded-xl ${tierC} text-white" title="${esc((sc.reasons||[]).join(', '))}"><span class="font-display font-bold text-base leading-none">${sc.score}</span><span class="text-[8px] uppercase tracking-wide opacity-90">${esc(tierLabel)}</span></div>`:'';
  return `<article class="card glass rounded-2xl p-5 animate-fadeup" data-id="${esc(l._id)}">
-   <header class="flex items-start justify-between gap-3">
-     <div class="min-w-0">
+   <header class="flex items-start gap-3">
+     ${scoreBadge}
+     <div class="min-w-0 flex-1">
        <h3 class="font-display font-semibold leading-tight truncate">${esc(c.name)}</h3>
        <div class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 flex items-center gap-1">${svg('pin','w-3 h-3 shrink-0')}<span class="truncate">${esc(c.address||c.city||'')}</span></div>
      </div>
-     <button class="heart shrink-0 w-9 h-9 grid place-items-center rounded-xl border border-black/10 dark:border-white/10 hover:border-rose-400 ${liked?'text-rose-500 bg-rose-500/10 border-rose-500/40':'text-zinc-400'}" title="${liked?u.saved:u.save}">
-       <svg class="w-5 h-5" viewBox="0 0 24 24" fill="${liked?'currentColor':'none'}" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONS.heart}</svg></button>
+     <div class="shrink-0 flex items-center gap-1.5">
+       <button class="msg w-9 h-9 grid place-items-center rounded-xl border border-black/10 dark:border-white/10 text-violet-500 hover:bg-violet-500/10 hover:border-violet-400" title="${u.write_msg}">${svg('pen','w-5 h-5')}</button>
+       <button class="heart w-9 h-9 grid place-items-center rounded-xl border border-black/10 dark:border-white/10 hover:border-rose-400 ${liked?'text-rose-500 bg-rose-500/10 border-rose-500/40':'text-zinc-400'}" title="${liked?u.saved:u.save}">
+         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="${liked?'currentColor':'none'}" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONS.heart}</svg></button>
+     </div>
    </header>
    ${profChips?`<div class="flex flex-wrap gap-1.5 mt-2.5">${profChips}</div>`:''}
    <div class="mt-3 space-y-1.5">
@@ -306,7 +367,10 @@ function render(leads,total){const u=UI[lang],out=$('#results');
  if(tab==='saved'&&!savedLeads.length){out.innerHTML=emptyState(u.empty_saved);return;}
  if(!leads.length){out.innerHTML=emptyState(u.none);}
  else out.innerHTML=leads.map(card).join('');
- out.querySelectorAll('.card').forEach(el=>el.querySelector('.heart').onclick=()=>toggleSave(el.dataset.id));
+ out.querySelectorAll('.card').forEach(el=>{
+   el.querySelector('.heart').onclick=()=>toggleSave(el.dataset.id);
+   const mb=el.querySelector('.msg'); if(mb)mb.onclick=()=>openOutreach(el.dataset.id);
+ });
  if(tab==='search'&&lastLeads.length)$('#status').textContent=u.found(leads.length,lastLeads.length);
 }
 function emptyState(msg){return `<div class="col-span-full flex flex-col items-center justify-center text-center py-16 text-zinc-400">
@@ -335,6 +399,39 @@ async function runSearch(url,body){const u=UI[lang];tab='search';paintTabs();
  }catch(e){$('#status').innerHTML=`<span class="text-rose-500">⚠ ${esc(e.message||e)}</span>`;$('#results').innerHTML='';}}
 $('#runCity').onclick=()=>runSearch('/api/find',{category:category.value,city:city.value,country:country.value,limit:+limit.value,lang,enrich:enrich.checked,source:$('#source').value});
 $('#runMap').onclick=()=>picked&&runSearch('/api/find_around',{category:category.value,lat:picked.lat,lon:picked.lng,radius_m:+radius.value,limit:+limit.value,lang,enrich:enrich.checked});
+
+// ---- outreach drawer ----
+let dwLead=null, dwChannel='email', dwPersonIdx=0;
+function findLead(id){return (tab==='saved'?savedLeads:lastLeads).find(l=>l._id===id)||savedLeads.find(l=>l._id===id)||lastLeads.find(l=>l._id===id);}
+function paintChannels(){$$('#dwChannels .chtab').forEach(b=>{const on=b.dataset.ch===dwChannel;
+  b.className='chtab flex-1 py-1.5 rounded-lg text-xs font-medium border '+(on?'bg-brand-500 text-white border-brand-500':'bg-white dark:bg-white/5 text-zinc-600 dark:text-zinc-300 border-black/10 dark:border-white/10 hover:border-brand-400');});}
+function openOutreach(id){const u=UI[lang];dwLead=findLead(id);if(!dwLead)return;
+  const c=dwLead.company||{},dms=(dwLead.enrichment||{}).decision_makers||[];
+  $('#dwName').textContent=c.name||'';$('#dwSub').textContent=(c.gmaps_category||c.category||'')+' · '+(c.city||'');
+  dwChannel='email';dwPersonIdx=0;paintChannels();
+  const ps=$('#dwPerson');
+  ps.innerHTML=dms.length?dms.map((p,i)=>`<option value="${i}">${esc(p.name)} · ${esc(p.role||'')}</option>`).join(''):`<option value="0">${esc(u.contact)}</option>`;
+  $('#drawer').classList.remove('hidden');document.body.style.overflow='hidden';
+  $('#dwAnalysis').innerHTML='<span class="spin"></span>';$('#dwMsg').value='';
+  runAnalysis();genMessage();}
+function closeDrawer(){$('#drawer').classList.add('hidden');document.body.style.overflow='';}
+$('#dwClose').onclick=closeDrawer;$('#drawerBg').onclick=closeDrawer;
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer();});
+$$('#dwChannels .chtab').forEach(b=>b.onclick=()=>{dwChannel=b.dataset.ch;paintChannels();genMessage();});
+$('#dwPerson').onchange=e=>{dwPersonIdx=+e.target.value;genMessage();};
+async function runAnalysis(){const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lead:dwLead,lang})});
+  const d=await r.json();$('#dwAnalysis').textContent=d.summary||'';}
+async function genMessage(){$('#dwMsg').value='…';
+  const r=await fetch('/api/outreach',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lead:dwLead,person_index:dwPersonIdx,channel:dwChannel,lang})});
+  const d=await r.json();$('#dwMsg').value=d.message||'';}
+$('#dwGen').onclick=genMessage;
+$('#dwCopy').onclick=()=>{const u=UI[lang];navigator.clipboard.writeText($('#dwMsg').value);const b=$('#dwCopy').querySelector('span:last-child');const o=b.textContent;b.textContent=u.copied;setTimeout(()=>b.textContent=o,1500);};
+
+// ---- export + AI status ----
+$('#exportBtn').onclick=()=>window.open('/api/export.csv?scope='+(tab==='saved'?'saved':'recent'),'_blank');
+async function refreshAi(){const u=UI[lang];try{const d=await (await fetch('/api/ai_status')).json();const p=$('#aiPill');
+  p.textContent=(d.ai?'🟢 ':'⚪ ')+(d.ai?u.ai_on:u.ai_off);
+  p.className='hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium border '+(d.ai?'border-emerald-500/30 text-emerald-500 bg-emerald-500/10':'border-black/10 dark:border-white/10 text-zinc-400');}catch(e){}}
 
 // ---- map ----
 const darkTiles='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';

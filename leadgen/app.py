@@ -7,12 +7,18 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import csv
+import io
+from typing import List, Optional
+
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from . import service
+from . import llm, service
+from .analyze.company import analyze
 from .i18n import LANGS
+from .outreach.writer import write_message
 from .service import (
     find_leads,
     find_leads_around,
@@ -22,6 +28,7 @@ from .service import (
     remove_favorite,
     save_favorite,
     saved_ids,
+    update_favorite,
 )
 from .sources.osm import CATEGORY_TAGS
 
@@ -130,6 +137,77 @@ def api_save(req: SaveRequest):
 @app.post("/api/unsave")
 def api_unsave(req: UnsaveRequest):
     return JSONResponse({"removed": remove_favorite(req.id)})
+
+
+class UpdateSavedRequest(BaseModel):
+    id: str
+    tags: Optional[List[str]] = None
+    notes: Optional[str] = None
+    status: Optional[str] = None
+
+
+@app.post("/api/update_saved")
+def api_update_saved(req: UpdateSavedRequest):
+    ok = update_favorite(req.id, tags=req.tags, notes=req.notes, status=req.status)
+    return JSONResponse({"updated": ok})
+
+
+class OutreachRequest(BaseModel):
+    lead: dict
+    person_index: int = 0
+    channel: str = "email"
+    lang: str = "uk"
+
+
+@app.post("/api/outreach")
+def api_outreach(req: OutreachRequest):
+    lang = req.lang if req.lang in LANGS else "uk"
+    return JSONResponse(write_message(req.lead, req.person_index, req.channel, lang))
+
+
+class AnalyzeRequest(BaseModel):
+    lead: dict
+    lang: str = "uk"
+
+
+@app.post("/api/analyze")
+def api_analyze(req: AnalyzeRequest):
+    lang = req.lang if req.lang in LANGS else "uk"
+    return JSONResponse(analyze(req.lead, lang))
+
+
+@app.get("/api/ai_status")
+def api_ai_status():
+    return JSONResponse({"ai": llm.available()})
+
+
+@app.get("/api/export.csv")
+def api_export(scope: str = "saved"):
+    leads = list_favorites() if scope == "saved" else load_leads(500)
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["name", "category", "city", "address", "website", "rating", "reviews",
+                "size", "score", "tier", "emails", "phones", "linkedin", "telegram",
+                "decision_makers", "tags", "status", "notes"])
+    for ld in leads:
+        c, en = ld.get("company", {}), ld.get("enrichment", {})
+        sc = ld.get("score", {})
+        w.writerow([
+            c.get("name"), c.get("gmaps_category") or c.get("category"), c.get("city"),
+            c.get("address"), c.get("website"), c.get("rating"), c.get("reviews"),
+            (en.get("profile", {}) or {}).get("size_band") or c.get("size_band"),
+            sc.get("score"), sc.get("tier"),
+            "; ".join(en.get("emails", [])), "; ".join(en.get("phones", [])),
+            (en.get("socials", {}) or {}).get("linkedin", ""),
+            "; ".join("@" + h for h in en.get("telegram", [])),
+            "; ".join(p.get("name", "") for p in en.get("decision_makers", [])),
+            "; ".join(ld.get("tags", [])), ld.get("status", ""), ld.get("notes", ""),
+        ])
+    buf.seek(0)
+    return StreamingResponse(
+        iter([buf.getvalue()]), media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=leadgen_{scope}.csv"},
+    )
 
 
 @app.get("/", response_class=HTMLResponse)

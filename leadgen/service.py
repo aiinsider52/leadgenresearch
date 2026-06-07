@@ -11,11 +11,15 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Callable, Optional
 
+from .analyze.scoring import score_lead
 from .catalog.match import Match, match_company
 from .catalog.n8n_templates import recommend_templates
 from .enrich.linkedin import enrich_people
 from .enrich.site import enrich_site
 from .i18n import resolve_category
+
+# Office-based niches where OSM is sparse → auto-route to Google Maps.
+OFFICE_NICHES = {"agency", "law", "real_estate", "education"}
 from .sources.osm import Company, discover, discover_around
 
 from .config import data_dir
@@ -31,6 +35,7 @@ class Lead:
     enrichment: dict
     automations: list[dict] = field(default_factory=list)   # our sellable offers
     templates: list[dict] = field(default_factory=list)     # live n8n library matches
+    score: dict = field(default_factory=dict)               # {score, tier, reasons}
     lang: str = "uk"
 
     def to_dict(self) -> dict:
@@ -103,15 +108,18 @@ def _process(companies, lang: str, enrich: bool, progress, category: str = "",
                           enrichment.get("linkedin_profiles", []))
         signals = _company_signals(c, enrichment)
         matches: list[Match] = match_company(signals, lang=lang)
+        company_dict = c.to_dict()
         leads.append(
             Lead(
-                company=c.to_dict(),
+                company=company_dict,
                 enrichment=enrichment,
                 automations=[m.__dict__ for m in matches],
                 templates=templates,
+                score=score_lead(company_dict, enrichment),
                 lang=lang,
             )
         )
+    leads.sort(key=lambda l: l.score.get("score", 0), reverse=True)  # hottest first
     save_leads(leads)
     return leads
 
@@ -131,6 +139,8 @@ def find_leads(
     'gmaps' (richer: ratings/reviews/size, but experimental). gmaps falls
     back to OSM if Google blocks the request."""
     category = resolve_category(category_label) or category_label
+    if source == "auto":  # office niches → Google Maps, physical places → OSM
+        source = "gmaps" if category in OFFICE_NICHES else "osm"
     if progress:
         progress(f"discover:{source}:{category}:{city}")
     companies = []
@@ -182,13 +192,14 @@ def save_leads(leads: list[Lead]) -> None:
 def load_leads(limit: int = 200) -> list[dict]:
     if not LEADS_FILE.exists():
         return []
-    out: list[dict] = []
+    by_id: dict[str, dict] = {}
     with open(LEADS_FILE, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line:
-                out.append(json.loads(line))
-    return out[-limit:]
+                lead = json.loads(line)
+                by_id[_lead_id(lead)] = lead   # dedupe: keep latest per company
+    return list(by_id.values())[-limit:]
 
 
 # ---- Quality filters ---------------------------------------------------------
@@ -251,6 +262,18 @@ def save_favorite(lead: dict) -> str:
     d[lid] = lead
     _write_saved(d)
     return lid
+
+
+def update_favorite(lead_id: str, **fields) -> bool:
+    """Set tags / notes / status on a saved lead."""
+    d = _read_saved()
+    if lead_id not in d:
+        return False
+    for k in ("tags", "notes", "status"):
+        if k in fields and fields[k] is not None:
+            d[lead_id][k] = fields[k]
+    _write_saved(d)
+    return True
 
 
 def remove_favorite(lead_id: str) -> bool:
