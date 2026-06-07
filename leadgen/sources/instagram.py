@@ -30,8 +30,40 @@ ROLE_RE = re.compile(r"\b(Co-?founder(?:\s*(?:&|and|/|\+)\s*CEO)?|Founder(?:\s*(
 COMPANY_HANDLE_RE = re.compile(r"(?:at|of|@|в|у)\s*@([A-Za-z0-9_.]{3,30})", re.I)
 # Role-gimmick accounts ("ceomindset", "founder.life") — not real operators.
 GIMMICK_RE = re.compile(r"(ceo|founder|owner|director)", re.I)
-# "founder" alone surfaces real personal accounts best (tested).
-PEOPLE_TERMS = "founder"
+# Roles fanned out across one multi-term run to maximise C-level coverage.
+# (No hyphens/punctuation — the actor rejects them inside a search term.)
+PEOPLE_ROLES_EN = ["founder", "ceo", "cofounder", "owner", "managing director", "cmo"]
+PEOPLE_ROLES_UK = ["засновник", "власник", "директор"]
+# Characters the actor forbids inside a single search term.
+_FORBIDDEN = re.compile(r"[!?.,:;\-+=*&%$#@/\\~^|<>()\[\]{}\"'`]")
+
+
+def _sanitize_term(t: str) -> str:
+    return re.sub(r"\s+", " ", _FORBIDDEN.sub(" ", t)).strip()
+
+
+def _build_people_queries(category: str, city: str, max_terms: int = 16) -> list[str]:
+    """Fan out role × niche-token × word-order variations (one Apify run takes
+    them comma-separated). Instagram returns few personal accounts per exact
+    query, so breadth of phrasings is what grows the union of real C-level."""
+    cat = _sanitize_term(category)
+    cty = _sanitize_term(city)
+    # Niche tokens: whole phrase + individual words (e.g. marketing, agency).
+    tokens = [cat] + [w for w in cat.split() if len(w) > 2]
+    tokens = list(dict.fromkeys(tokens))[:3]
+    roles = ["founder", "ceo", "owner", "засновник"]
+
+    terms: list[str] = []
+    for r in roles:
+        for tok in tokens:
+            terms.append(f"{r} {tok} {cty}".strip())   # role niche city
+        terms.append(f"{r} {cty}".strip())             # role city (broad)
+    # a few niche-first / no-city variants catch differently-ranked accounts
+    terms.append(f"{cat} founder")
+    terms.append(f"{cat} ceo {cty}".strip())
+
+    terms = [_sanitize_term(t) for t in terms]
+    return list(dict.fromkeys(t for t in terms if t))[:max_terms]
 
 
 def _first(d: dict, *keys):
@@ -120,19 +152,19 @@ def _extract_person(item: dict, ig_url):
 
     hay = f"{full} | {bio}"
     rm = ROLE_RE.search(hay)
-    if not rm:
+    if not rm:                       # must signal a role
         return None
     cm = COMPANY_HANDLE_RE.search(bio)
     person_full = _looks_like_person(full) and not GIMMICK_RE.search(full)
-    # Accept if we have a concrete company @handle OR a clear human full name.
-    if not cm and not person_full:
+    # Addressable human name: a person-looking fullName, else a first_last handle.
+    name = full if person_full else _humanize_username(username)
+    if not name:                     # can't address them → skip
         return None
     role = re.sub(r"\s+", " ", rm.group(0)).strip()
     company = cm.group(1).strip(" .") if cm else None
-    name = full if person_full else _humanize_username(username)
-    if not name:
-        return None
-    return {"name": name, "role": role, "company": company}
+    # Confidence: company @handle present = high; otherwise medium.
+    confidence = "high" if cm else "medium"
+    return {"name": name, "role": role, "company": company, "confidence": confidence}
 
 
 def discover_instagram(
@@ -148,14 +180,19 @@ def discover_instagram(
     if not token:
         raise RuntimeError("APIFY_TOKEN not set (env or data/secrets.env) — needed for Instagram source.")
 
-    term = f"{category} {city}".strip()
-    if mode == "people":  # bias the search toward founder/CEO personal accounts
-        term = f"{PEOPLE_TERMS} {term}".strip()
+    if mode == "people":
+        # Fan out many role/niche variations in one comma-separated run.
+        queries = _build_people_queries(category, city)
+        term = ", ".join(queries)
+        search_limit = 20  # per term → total pool ≈ terms × 20, then filtered
+    else:
+        term = f"{category} {city}".strip()
+        search_limit = max(limit, 1)
     payload = {
         "search": term,
         "searchType": search_type,
-        "searchLimit": max(limit * 2 if mode == "people" else limit, 1),  # over-fetch, filter
-        "enhanceUserSearchWithFacebookPage": True,  # adds email/FB to top-10
+        "searchLimit": search_limit,
+        "enhanceUserSearchWithFacebookPage": True,  # adds email/FB to top results
     }
     r = requests.post(RUN_SYNC, params={"token": token}, json=payload, timeout=timeout)
     if r.status_code >= 400:
@@ -179,16 +216,17 @@ def discover_instagram(
             person = _extract_person(it, ig_url)
             if not person:          # keep only real C-level/people accounts
                 continue
+            key = (username or ig_url or person["name"]).lower()  # dedupe by person
+            if key in seen:
+                continue
+            seen.add(key)
             # The lead is the company they lead (or their personal brand).
             lead_name = person["company"] or person["name"]
-            if lead_name in seen:
-                continue
-            seen.add(lead_name)
             en["decision_makers"] = [{
                 "name": person["name"], "role": person["role"],
                 "source_url": ig_url, "linkedin": None,
                 "linkedin_search": f"https://www.linkedin.com/search/results/people/?keywords={quote(person['name'])}",
-                "instagram": ig_url,
+                "instagram": ig_url, "confidence": person.get("confidence", "medium"),
             }]
             companies.append(Company(
                 name=lead_name, category=category,
