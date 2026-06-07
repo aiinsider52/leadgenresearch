@@ -144,19 +144,27 @@ def find_leads(
     if progress:
         progress(f"discover:{source}:{category}:{city}")
     companies = []
-    if source == "gmaps":
+    if source == "instagram":
+        # IG-native niches: founders/personal brands + emails via Apify actor.
+        from .sources.instagram import discover_instagram
+        companies = discover_instagram(category_label, city, country=country, limit=limit)
+        for c in companies:
+            c.category = category
+    elif source == "gmaps":
         # Live Google Maps via headless browser — works worldwide incl. Ukraine.
-        # Search with the user's RAW phrase ("marketing agency"), not the slug,
-        # so Google's keyword search returns exactly what they typed.
+        # Search with the user's RAW phrase ("marketing agency"), not the slug.
+        # Deep-clicking is slow (~2s/result), so cap when also enriching to
+        # avoid multi-minute requests that time out the browser.
+        gmaps_limit = min(limit, 20) if enrich else min(limit, 30)
         try:
             from .sources.gmaps_playwright import discover_gmaps_pw
-            companies = discover_gmaps_pw(category_label, city, country=country, limit=limit)
+            companies = discover_gmaps_pw(category_label, city, country=country, limit=gmaps_limit)
             for c in companies:        # keep slug for matching/templates
                 c.category = category
         except Exception as exc:
             if progress:
                 progress(f"gmaps_failed:{exc}")
-    if not companies:  # default / fallback
+    if not companies and source != "instagram":  # default / fallback
         companies = discover(category, city, country=country, limit=limit,
                              require_website=require_website)
     return _process(companies, lang, enrich, progress, category=category)
