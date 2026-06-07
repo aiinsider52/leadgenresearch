@@ -95,49 +95,45 @@ tailwind.config = {
   </div>
 </header>
 
-<main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 grid lg:grid-cols-[330px_1fr] gap-5">
+<main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-5">
 
-  <!-- ░░ Sidebar ░░ -->
-  <aside class="space-y-4 lg:sticky lg:top-[84px] lg:self-start">
-    <!-- Search panel -->
-    <div class="glass rounded-2xl p-5 space-y-3.5">
-      <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-        <span class="ic" data-ic="search"></span><span data-i="search">Пошук</span>
-      </div>
-      <div>
-        <label class="block text-xs mb-1 text-zinc-500 dark:text-zinc-400" data-i="category">Категорія</label>
-        <input id="category" list="cats" class="w-full bg-white dark:bg-zinc-900/70 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm" value="restaurant" placeholder="restaurant / ресторан">
+  <!-- ░░ Top search bar ░░ -->
+  <div class="glass rounded-2xl p-3 sm:p-4">
+    <form id="searchForm" class="flex flex-col lg:flex-row gap-2">
+      <div class="relative flex-1 min-w-0">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"><span class="ic2" data-ic="search"></span></span>
+        <input id="category" list="cats" autocomplete="off" class="w-full bg-white dark:bg-zinc-900/70 border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-3 py-3 text-sm font-medium" value="marketing agency" placeholder="Що шукаємо? напр. marketing agency">
         <datalist id="cats"></datalist>
       </div>
-      <div>
-        <label class="block text-xs mb-1 text-zinc-500 dark:text-zinc-400" data-i="city">Місто</label>
-        <input id="city" class="w-full bg-white dark:bg-zinc-900/70 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm" value="Львів">
+      <div class="relative lg:w-52">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"><span class="ic2" data-ic="pin"></span></span>
+        <input id="city" autocomplete="off" class="w-full bg-white dark:bg-zinc-900/70 border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-3 py-3 text-sm" value="Київ" placeholder="Місто">
       </div>
-      <div class="grid grid-cols-2 gap-2">
-        <div><label class="block text-xs mb-1 text-zinc-500 dark:text-zinc-400" data-i="country">Країна</label>
-          <input id="country" class="w-full bg-white dark:bg-zinc-900/70 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm" value="Ukraine"></div>
-        <div><label class="block text-xs mb-1 text-zinc-500 dark:text-zinc-400" data-i="limit">Кількість</label>
-          <input id="limit" type="number" min="1" max="60" class="w-full bg-white dark:bg-zinc-900/70 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm" value="15"></div>
-      </div>
-      <label class="flex items-center gap-2.5 text-sm cursor-pointer select-none">
+      <div id="sourceSeg" class="flex bg-black/5 dark:bg-white/5 rounded-xl p-1 shrink-0"></div>
+      <button id="runCity" type="submit" class="bg-gradient-to-r from-brand-600 to-violet-600 hover:from-brand-500 hover:to-violet-500 text-white rounded-xl px-5 py-3 font-semibold shadow-lg shadow-brand-600/25 flex items-center justify-center gap-2 shrink-0">
+        <span class="ic" data-ic="search"></span><span data-i="run">Знайти лідів</span>
+      </button>
+      <button id="advBtn" type="button" class="w-11 h-11 grid place-items-center rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 shrink-0" title="Розширені"><span class="ic" data-ic="sliders"></span></button>
+    </form>
+    <!-- advanced -->
+    <div id="adv" class="hidden flex flex-wrap items-end gap-3 mt-3 pt-3 border-t border-black/5 dark:border-white/5">
+      <div><label class="block text-[11px] mb-1 text-zinc-500 dark:text-zinc-400" data-i="country">Країна</label>
+        <input id="country" class="w-36 bg-white dark:bg-zinc-900/70 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-sm" value="Ukraine"></div>
+      <div><label class="block text-[11px] mb-1 text-zinc-500 dark:text-zinc-400" data-i="limit">Кількість</label>
+        <input id="limit" type="number" min="1" max="60" class="w-24 bg-white dark:bg-zinc-900/70 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-sm" value="15"></div>
+      <label class="flex items-center gap-2.5 text-sm cursor-pointer select-none py-2">
         <input type="checkbox" id="enrich" checked class="peer sr-only">
         <span class="w-9 h-5 rounded-full bg-zinc-300 dark:bg-zinc-700 peer-checked:bg-brand-500 relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition peer-checked:after:translate-x-4"></span>
         <span data-i="enrich" class="text-zinc-600 dark:text-zinc-300">Збагачувати контакти</span>
       </label>
-      <div>
-        <label class="block text-xs mb-1 text-zinc-500 dark:text-zinc-400" data-i="source">Джерело</label>
-        <select id="source" class="w-full bg-white dark:bg-zinc-900/70 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm cursor-pointer">
-          <option value="osm">OpenStreetMap — швидко, безкоштовно</option>
-          <option value="gmaps">Google Maps — рейтинги, відгуки, сайти</option>
-          <option value="instagram">Instagram — засновники + email (Apify)</option>
-        </select>
-      </div>
-      <button id="runCity" class="w-full bg-gradient-to-r from-brand-600 to-violet-600 hover:from-brand-500 hover:to-violet-500 text-white rounded-xl px-4 py-3 font-semibold shadow-lg shadow-brand-600/25 flex items-center justify-center gap-2">
-        <span class="ic" data-ic="search"></span><span data-i="run">Знайти лідів</span>
-      </button>
+      <span id="srcHint" class="text-xs text-zinc-400 ml-auto self-center"></span>
     </div>
+    <select id="source" class="hidden"><option value="osm">osm</option><option value="gmaps">gmaps</option><option value="instagram">instagram</option></select>
+  </div>
 
-    <!-- Map panel -->
+  <div class="grid lg:grid-cols-[300px_1fr] gap-5">
+  <!-- ░░ Map sidebar ░░ -->
+  <aside class="lg:sticky lg:top-[84px] lg:self-start">
     <div class="glass rounded-2xl p-5 space-y-3">
       <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
         <span class="ic" data-ic="pin"></span><span data-i="map_title">Пошук на карті</span>
@@ -173,6 +169,7 @@ tailwind.config = {
     </div>
     <div id="results" class="grid sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-4"></div>
   </section>
+  </div>
 </main>
 
 <!-- ░░ Outreach drawer ░░ -->
@@ -189,7 +186,7 @@ tailwind.config = {
     <div class="p-5 space-y-5">
       <!-- analysis -->
       <section>
-        <div class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-2">${''}<span class="ic text-violet-400" data-ic="bolt"></span><span data-i="analysis">Аналіз компанії</span></div>
+        <div class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-2"><span class="ic text-violet-400" data-ic="bolt"></span><span data-i="analysis">Аналіз компанії</span></div>
         <div id="dwAnalysis" class="text-sm whitespace-pre-wrap rounded-xl bg-black/[.03] dark:bg-white/[.04] border border-black/5 dark:border-white/5 p-3 text-zinc-700 dark:text-zinc-200 min-h-[60px]"></div>
       </section>
       <!-- message -->
@@ -233,6 +230,10 @@ const ICONS={
  close:'<path d="M18 6 6 18M6 6l12 12"/>',
  download:'<path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 21h14"/>',
  bolt:'<path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/>',
+ sliders:'<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+ instagram:'<rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/>',
+ globe:'<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20"/>',
+ map:'<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/>',
  filter:'<path d="M22 3H2l8 9.5V20l4 2v-9.5L22 3Z"/>',
  sparkle:'<path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/>',
  moon:'<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/>',
@@ -256,6 +257,7 @@ const filters={email:false,phone:false,linkedin:false,telegram:false,dm:false};
 function applyLang(){const u=UI[lang];document.documentElement.lang=lang;$('#lang').value=lang;
  $$('[data-i]').forEach(el=>{const v=u[el.dataset.i]; if(typeof v==='string')el.textContent=v;});
  const sortSel=$('#sort');if(sortSel)sortSel.value=sortMode;
+ if(typeof updateSrcHint==='function')updateSrcHint();
  paintTabs();refreshAi();renderCurrent();}
 $('#lang').onchange=e=>{lang=e.target.value;localStorage.setItem('lg_lang',lang);applyLang();};
 
@@ -398,7 +400,21 @@ async function runSearch(url,body){const u=UI[lang];tab='search';paintTabs();
   if(!r.ok){throw new Error(data&&data.error?data.error:'HTTP '+r.status);}
   lastLeads=data;renderCurrent();
  }catch(e){$('#status').innerHTML=`<span class="text-rose-500">⚠ ${esc(e.message||e)}</span>`;$('#results').innerHTML='';}}
-$('#runCity').onclick=()=>runSearch('/api/find',{category:category.value,city:city.value,country:country.value,limit:+limit.value,lang,enrich:enrich.checked,source:$('#source').value});
+// segmented source control
+const SOURCES=[
+  {v:'osm',ic:'map',label:'OSM',hint:{uk:'швидко, безкоштовно · фіз. місця',ru:'быстро, бесплатно · физ. места',en:'fast, free · physical places'}},
+  {v:'gmaps',ic:'pin',label:'Maps',hint:{uk:'рейтинги, відгуки, сайти',ru:'рейтинги, отзывы, сайты',en:'ratings, reviews, sites'}},
+  {v:'instagram',ic:'instagram',label:'IG',hint:{uk:'засновники + email (Apify)',ru:'основатели + email (Apify)',en:'founders + email (Apify)'}},
+];
+let sourceMode=localStorage.getItem('lg_src')||'osm';
+function paintSources(){const seg=$('#sourceSeg');seg.innerHTML=SOURCES.map(s=>{
+  const on=s.v===sourceMode;
+  return `<button type="button" data-src="${s.v}" class="srcbtn flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium ${on?'bg-white dark:bg-zinc-800 shadow text-brand-600 dark:text-white':'text-zinc-500'}">${svg(s.ic,'w-4 h-4')}<span>${s.label}</span></button>`;}).join('');
+  seg.querySelectorAll('.srcbtn').forEach(b=>b.onclick=()=>{sourceMode=b.dataset.src;$('#source').value=sourceMode;localStorage.setItem('lg_src',sourceMode);paintSources();updateSrcHint();});
+  $('#source').value=sourceMode;}
+function updateSrcHint(){const s=SOURCES.find(x=>x.v===sourceMode);$('#srcHint').textContent=s?s.hint[lang]:'';}
+$('#advBtn').onclick=()=>{$('#adv').classList.toggle('hidden');updateSrcHint();};
+$('#searchForm').onsubmit=e=>{e.preventDefault();runSearch('/api/find',{category:category.value,city:city.value,country:country.value,limit:+limit.value,lang,enrich:enrich.checked,source:sourceMode});};
 $('#runMap').onclick=()=>picked&&runSearch('/api/find_around',{category:category.value,lat:picked.lat,lon:picked.lng,radius_m:+radius.value,limit:+limit.value,lang,enrich:enrich.checked});
 
 // ---- outreach drawer ----
@@ -450,7 +466,7 @@ map.on('click',e=>{picked=e.latlng;
  setTheme((localStorage.getItem('lg_theme')||'dark')==='dark');
  const cats=await (await fetch('/api/categories')).json();
  $('#cats').innerHTML=cats.map(c=>`<option value="${c}">`).join('');
- paintChips();refreshSavedCount();applyLang();
+ paintSources();paintChips();refreshSavedCount();applyLang();
  setTimeout(()=>map.invalidateSize(),200);
 })();
 </script>

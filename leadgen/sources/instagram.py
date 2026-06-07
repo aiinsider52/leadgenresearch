@@ -47,10 +47,16 @@ def _size_from_followers(n) -> Optional[str]:
     return "micro" if n < 2000 else "small" if n < 20000 else "medium" if n < 100000 else "large"
 
 
+def _clean_category(raw) -> Optional[str]:
+    if not raw:
+        return None
+    parts = [p.strip() for p in str(raw).split(",") if p.strip() and p.strip().lower() != "none"]
+    return parts[-1] if parts else None
+
+
 def _to_enrichment(item: dict, ig_url: Optional[str]) -> dict:
     email = _first(item, "email", "publicEmail", "businessEmail")
     phone = _first(item, "phone", "publicPhoneNumber", "businessPhoneNumber")
-    website = _first(item, "website", "externalUrl", "facebookPage")
     full = _first(item, "fullName", "full_name", "name") or ""
     bio = _first(item, "biography", "bio") or ""
     socials = {}
@@ -59,11 +65,12 @@ def _to_enrichment(item: dict, ig_url: Optional[str]) -> dict:
     if item.get("facebookPage"):
         socials["facebook"] = item["facebookPage"]
 
+    # Only treat as a decision-maker when there's an explicit role mention
+    # (CEO/Founder/Owner) — IG fullName is usually the brand, not a person.
     dms = []
     role_m = ROLE_RE.search(bio) or ROLE_RE.search(full)
-    if full and _looks_like_person(full):
-        dms.append({"name": full, "role": (role_m.group(0) if role_m else "Founder/Owner"),
-                    "source_url": ig_url})
+    if role_m and full and _looks_like_person(full):
+        dms.append({"name": full, "role": role_m.group(0), "source_url": ig_url})
     return {
         "emails": [email] if email else [],
         "phones": [phone] if phone else [],
@@ -72,7 +79,7 @@ def _to_enrichment(item: dict, ig_url: Optional[str]) -> dict:
         "decision_makers": dms,
         "staff": [],
         "profile": {"size_band": _size_from_followers(_first(item, "followersCount", "followers")),
-                    "industry": _first(item, "category", "businessCategoryName")},
+                    "industry": _clean_category(item.get("businessCategoryName"))},
         "signals": {},
         "linkedin_profiles": [],
         "pages_crawled": [],
@@ -116,17 +123,23 @@ def discover_instagram(
         seen.add(name)
         ig_url = it.get("url") or (f"https://instagram.com/{username}" if username else None)
         en = _to_enrichment(it, ig_url)
+        # Real website (externalUrl) drives enrichment → email/decision-makers
+        # come from the actual site. Fall back to the IG profile if no site.
+        site = _first(it, "externalUrl", "website") or ig_url
+        ba = it.get("businessAddress") or {}
         companies.append(Company(
-            name=name, category=category, city=city, country=country,
-            website=en["socials"].get("instagram"),
+            name=name, category=category,
+            city=ba.get("city_name") or city, country=country,
+            website=site,
             phone=(en["phones"] or [None])[0],
-            address=_first(it, "address", "addressStreet"),
+            address=ba.get("city_name") or _first(it, "address", "addressStreet"),
             source="instagram",
             raw_tags={
                 "size_band": en["profile"]["size_band"],
                 "gmaps_category": en["profile"]["industry"],
                 "instagram": ig_url,
                 "followers": _first(it, "followersCount", "followers"),
+                "verified": it.get("verified"),
                 "_enrichment": en,
             },
         ))
