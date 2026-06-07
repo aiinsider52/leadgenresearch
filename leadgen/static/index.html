@@ -126,6 +126,13 @@ tailwind.config = {
         <span class="w-9 h-5 rounded-full bg-zinc-300 dark:bg-zinc-700 peer-checked:bg-brand-500 relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition peer-checked:after:translate-x-4"></span>
         <span data-i="enrich" class="text-zinc-600 dark:text-zinc-300">Збагачувати контакти</span>
       </label>
+      <div id="igModeWrap" class="hidden">
+        <label class="block text-[11px] mb-1 text-zinc-500 dark:text-zinc-400" data-i="ig_mode">Тип Instagram</label>
+        <div id="igModeSeg" class="flex bg-black/5 dark:bg-white/5 rounded-lg p-1">
+          <button type="button" data-m="business" class="igmbtn px-3 py-1.5 rounded-md text-xs font-medium" data-i="ig_biz">Бізнеси</button>
+          <button type="button" data-m="people" class="igmbtn px-3 py-1.5 rounded-md text-xs font-medium" data-i="ig_people">Люди (C-level)</button>
+        </div>
+      </div>
       <span id="srcHint" class="text-xs text-zinc-400 ml-auto self-center"></span>
     </div>
     <select id="source" class="hidden"><option value="osm">osm</option><option value="gmaps">gmaps</option><option value="instagram">instagram</option></select>
@@ -246,9 +253,9 @@ document.querySelectorAll('[data-ic]').forEach(el=>el.innerHTML=svg(el.dataset.i
 
 // ---- i18n ----
 const UI={
- uk:{title:"LeadGen",tab_search:"Пошук",tab_saved:"Збережені",search:"Пошук",category:"Категорія",city:"Місто",country:"Країна",limit:"Кількість",enrich:"Збагачувати контакти",run:"Знайти лідів",map_title:"Пошук на карті",map_hint:"Клікніть на карті, щоб обрати точку.",search_here:"Шукати тут",filters:"Фільтри",f_email:"email",f_phone:"телефон",f_linkedin:"LinkedIn",f_telegram:"Telegram",f_dm:"керівник",loading:"Шукаю…",found:(n,t)=>`Показано ${n} з ${t}`,none:"Нічого не знайдено",dm:"Керівники",autos:"Наші пропозиції",templates:"Готові n8n шаблони",staff:"Команда",founded:"Засновано",source:"Джерело",emp:"співробітників",save:"Зберегти",saved:"Збережено",empty_saved:"Ще нічого не збережено. Натисніть ♥ на картці.",write_msg:"Згенерувати повідомлення",analysis:"Аналіз компанії",message:"Повідомлення",gen:"Згенерувати",regen:"Згенерувати ще раз",copy:"Копіювати",copied:"Скопійовано ✓",export:"Експорт CSV",ai_on:"AI увімкнено",ai_off:"AI вимкнено (шаблони)",contact:"Контакт",sort:"Сортування",sort_score:"За рейтингом ліда",sort_reviews:"За відгуками",sort_default:"За замовчуванням"},
- ru:{title:"LeadGen",tab_search:"Поиск",tab_saved:"Сохранённые",search:"Поиск",category:"Категория",city:"Город",country:"Страна",limit:"Количество",enrich:"Обогащать контакты",run:"Найти лидов",map_title:"Поиск на карте",map_hint:"Кликните на карте, чтобы выбрать точку.",search_here:"Искать здесь",filters:"Фильтры",f_email:"email",f_phone:"телефон",f_linkedin:"LinkedIn",f_telegram:"Telegram",f_dm:"руководитель",loading:"Ищу…",found:(n,t)=>`Показано ${n} из ${t}`,none:"Ничего не найдено",dm:"Руководители",autos:"Наши предложения",templates:"Готовые n8n шаблоны",staff:"Команда",founded:"Основано",source:"Источник",emp:"сотрудников",save:"Сохранить",saved:"Сохранено",empty_saved:"Пока ничего не сохранено. Нажмите ♥ на карточке.",write_msg:"Сгенерировать сообщение",analysis:"Анализ компании",message:"Сообщение",gen:"Сгенерировать",regen:"Сгенерировать ещё раз",copy:"Копировать",copied:"Скопировано ✓",export:"Экспорт CSV",ai_on:"AI включён",ai_off:"AI выключен (шаблоны)",contact:"Контакт",sort:"Сортировка",sort_score:"По рейтингу лида",sort_reviews:"По отзывам",sort_default:"По умолчанию"},
- en:{title:"LeadGen",tab_search:"Search",tab_saved:"Saved",search:"Search",category:"Category",city:"City",country:"Country",limit:"Limit",enrich:"Enrich contacts",run:"Find leads",map_title:"Search on map",map_hint:"Click the map to pick a point.",search_here:"Search here",filters:"Filters",f_email:"email",f_phone:"phone",f_linkedin:"LinkedIn",f_telegram:"Telegram",f_dm:"exec",loading:"Searching…",found:(n,t)=>`Showing ${n} of ${t}`,none:"No results",dm:"Decision makers",autos:"Our offers",templates:"Ready n8n templates",staff:"Team",founded:"Founded",source:"Source",emp:"employees",save:"Save",saved:"Saved",empty_saved:"Nothing saved yet. Tap ♥ on a card.",write_msg:"Generate message",analysis:"Company analysis",message:"Message",gen:"Generate",regen:"Regenerate",copy:"Copy",copied:"Copied ✓",export:"Export CSV",ai_on:"AI on",ai_off:"AI off (templates)",contact:"Contact",sort:"Sort",sort_score:"By lead score",sort_reviews:"By reviews",sort_default:"Default"}
+ uk:{title:"LeadGen",tab_search:"Пошук",tab_saved:"Збережені",search:"Пошук",category:"Категорія",city:"Місто",country:"Країна",limit:"Кількість",enrich:"Збагачувати контакти",run:"Знайти лідів",map_title:"Пошук на карті",map_hint:"Клікніть на карті, щоб обрати точку.",search_here:"Шукати тут",filters:"Фільтри",f_email:"email",f_phone:"телефон",f_linkedin:"LinkedIn",f_telegram:"Telegram",f_dm:"керівник",loading:"Шукаю…",found:(n,t)=>`Показано ${n} з ${t}`,none:"Нічого не знайдено",dm:"Керівники",autos:"Наші пропозиції",templates:"Готові n8n шаблони",staff:"Команда",founded:"Засновано",source:"Джерело",emp:"співробітників",save:"Зберегти",saved:"Збережено",empty_saved:"Ще нічого не збережено. Натисніть ♥ на картці.",write_msg:"Згенерувати повідомлення",analysis:"Аналіз компанії",message:"Повідомлення",gen:"Згенерувати",regen:"Згенерувати ще раз",copy:"Копіювати",copied:"Скопійовано ✓",export:"Експорт CSV",ai_on:"AI увімкнено",ai_off:"AI вимкнено (шаблони)",contact:"Контакт",sort:"Сортування",sort_score:"За рейтингом ліда",sort_reviews:"За відгуками",sort_default:"За замовчуванням",ig_mode:"Тип Instagram",ig_biz:"Бізнеси",ig_people:"Люди (C-level)"},
+ ru:{title:"LeadGen",tab_search:"Поиск",tab_saved:"Сохранённые",search:"Поиск",category:"Категория",city:"Город",country:"Страна",limit:"Количество",enrich:"Обогащать контакты",run:"Найти лидов",map_title:"Поиск на карте",map_hint:"Кликните на карте, чтобы выбрать точку.",search_here:"Искать здесь",filters:"Фильтры",f_email:"email",f_phone:"телефон",f_linkedin:"LinkedIn",f_telegram:"Telegram",f_dm:"руководитель",loading:"Ищу…",found:(n,t)=>`Показано ${n} из ${t}`,none:"Ничего не найдено",dm:"Руководители",autos:"Наши предложения",templates:"Готовые n8n шаблоны",staff:"Команда",founded:"Основано",source:"Источник",emp:"сотрудников",save:"Сохранить",saved:"Сохранено",empty_saved:"Пока ничего не сохранено. Нажмите ♥ на карточке.",write_msg:"Сгенерировать сообщение",analysis:"Анализ компании",message:"Сообщение",gen:"Сгенерировать",regen:"Сгенерировать ещё раз",copy:"Копировать",copied:"Скопировано ✓",export:"Экспорт CSV",ai_on:"AI включён",ai_off:"AI выключен (шаблоны)",contact:"Контакт",sort:"Сортировка",sort_score:"По рейтингу лида",sort_reviews:"По отзывам",sort_default:"По умолчанию",ig_mode:"Тип Instagram",ig_biz:"Бизнесы",ig_people:"Люди (C-level)"},
+ en:{title:"LeadGen",tab_search:"Search",tab_saved:"Saved",search:"Search",category:"Category",city:"City",country:"Country",limit:"Limit",enrich:"Enrich contacts",run:"Find leads",map_title:"Search on map",map_hint:"Click the map to pick a point.",search_here:"Search here",filters:"Filters",f_email:"email",f_phone:"phone",f_linkedin:"LinkedIn",f_telegram:"Telegram",f_dm:"exec",loading:"Searching…",found:(n,t)=>`Showing ${n} of ${t}`,none:"No results",dm:"Decision makers",autos:"Our offers",templates:"Ready n8n templates",staff:"Team",founded:"Founded",source:"Source",emp:"employees",save:"Save",saved:"Saved",empty_saved:"Nothing saved yet. Tap ♥ on a card.",write_msg:"Generate message",analysis:"Company analysis",message:"Message",gen:"Generate",regen:"Regenerate",copy:"Copy",copied:"Copied ✓",export:"Export CSV",ai_on:"AI on",ai_off:"AI off (templates)",contact:"Contact",sort:"Sort",sort_score:"By lead score",sort_reviews:"By reviews",sort_default:"Default",ig_mode:"Instagram type",ig_biz:"Businesses",ig_people:"People (C-level)"}
 };
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
 let lang=localStorage.getItem('lg_lang')||'uk', tab='search', lastLeads=[], savedLeads=[], picked=null, marker=null, circle=null, tiles=null, sortMode='score';
@@ -410,11 +417,18 @@ let sourceMode=localStorage.getItem('lg_src')||'osm';
 function paintSources(){const seg=$('#sourceSeg');seg.innerHTML=SOURCES.map(s=>{
   const on=s.v===sourceMode;
   return `<button type="button" data-src="${s.v}" class="srcbtn flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium ${on?'bg-white dark:bg-zinc-800 shadow text-brand-600 dark:text-white':'text-zinc-500'}">${svg(s.ic,'w-4 h-4')}<span>${s.label}</span></button>`;}).join('');
-  seg.querySelectorAll('.srcbtn').forEach(b=>b.onclick=()=>{sourceMode=b.dataset.src;$('#source').value=sourceMode;localStorage.setItem('lg_src',sourceMode);paintSources();updateSrcHint();});
+  seg.querySelectorAll('.srcbtn').forEach(b=>b.onclick=()=>{sourceMode=b.dataset.src;$('#source').value=sourceMode;localStorage.setItem('lg_src',sourceMode);
+    if(sourceMode==='instagram')$('#adv').classList.remove('hidden');   // reveal IG mode toggle
+    paintSources();updateSrcHint();paintIgMode();});
   $('#source').value=sourceMode;}
 function updateSrcHint(){const s=SOURCES.find(x=>x.v===sourceMode);$('#srcHint').textContent=s?s.hint[lang]:'';}
+let igMode='business';
+function paintIgMode(){$('#igModeWrap').classList.toggle('hidden',sourceMode!=='instagram');
+  $$('#igModeSeg .igmbtn').forEach(b=>{const on=b.dataset.m===igMode;
+    b.className='igmbtn px-3 py-1.5 rounded-md text-xs font-medium '+(on?'bg-white dark:bg-zinc-800 shadow text-brand-600 dark:text-white':'text-zinc-500');});}
+$$('#igModeSeg .igmbtn').forEach(b=>b.onclick=()=>{igMode=b.dataset.m;paintIgMode();});
 $('#advBtn').onclick=()=>{$('#adv').classList.toggle('hidden');updateSrcHint();};
-$('#searchForm').onsubmit=e=>{e.preventDefault();runSearch('/api/find',{category:category.value,city:city.value,country:country.value,limit:+limit.value,lang,enrich:enrich.checked,source:sourceMode});};
+$('#searchForm').onsubmit=e=>{e.preventDefault();runSearch('/api/find',{category:category.value,city:city.value,country:country.value,limit:+limit.value,lang,enrich:enrich.checked,source:sourceMode,ig_mode:igMode});};
 $('#runMap').onclick=()=>picked&&runSearch('/api/find_around',{category:category.value,lat:picked.lat,lon:picked.lng,radius_m:+radius.value,limit:+limit.value,lang,enrich:enrich.checked});
 
 // ---- outreach drawer ----
@@ -466,7 +480,7 @@ map.on('click',e=>{picked=e.latlng;
  setTheme((localStorage.getItem('lg_theme')||'dark')==='dark');
  const cats=await (await fetch('/api/categories')).json();
  $('#cats').innerHTML=cats.map(c=>`<option value="${c}">`).join('');
- paintSources();paintChips();refreshSavedCount();applyLang();
+ paintSources();paintIgMode();paintChips();refreshSavedCount();applyLang();
  setTimeout(()=>map.invalidateSize(),200);
 })();
 </script>

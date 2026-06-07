@@ -133,6 +133,7 @@ def find_leads(
     enrich: bool = True,
     require_website: bool = False,
     source: str = "osm",
+    ig_mode: str = "business",
     progress: Optional[Callable[[str], None]] = None,
 ) -> list[Lead]:
     """Full free pipeline by city. `source` = 'osm' (default, reliable) or
@@ -147,7 +148,7 @@ def find_leads(
     if source == "instagram":
         # IG-native niches: founders/personal brands + emails via Apify actor.
         from .sources.instagram import discover_instagram
-        companies = discover_instagram(category_label, city, country=country, limit=limit)
+        companies = discover_instagram(category_label, city, country=country, limit=limit, mode=ig_mode)
         for c in companies:
             c.category = category
     elif source == "gmaps":

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import re
 from typing import Optional
+from urllib.parse import quote
 
 import requests
 
@@ -24,7 +25,13 @@ from .osm import Company
 ACTOR = "apify~instagram-search-scraper"
 RUN_SYNC = f"https://api.apify.com/v2/acts/{ACTOR}/run-sync-get-dataset-items"
 
-ROLE_RE = re.compile(r"\b(CEO|Founder|Co-?founder|Owner|Director|CMO|CTO|засновник|власник|директор|керівник|основатель|владелец)\b", re.I)
+ROLE_RE = re.compile(r"\b(Co-?founder(?:\s*(?:&|and|/|\+)\s*CEO)?|Founder(?:\s*(?:&|and|/|\+)\s*CEO)?|CEO|Owner|Managing Director|Director|CMO|CTO|COO|засновни(?:к|ця)|власни(?:к|ця)|директор|керівни(?:к|ця)|основатель|владелец)\b", re.I)
+# The company a person leads, mentioned in bio as an @handle: "CEO at @acme".
+COMPANY_HANDLE_RE = re.compile(r"(?:at|of|@|в|у)\s*@([A-Za-z0-9_.]{3,30})", re.I)
+# Role-gimmick accounts ("ceomindset", "founder.life") — not real operators.
+GIMMICK_RE = re.compile(r"(ceo|founder|owner|director)", re.I)
+# "founder" alone surfaces real personal accounts best (tested).
+PEOPLE_TERMS = "founder"
 
 
 def _first(d: dict, *keys):
@@ -87,12 +94,54 @@ def _to_enrichment(item: dict, ig_url: Optional[str]) -> dict:
     }
 
 
+def _humanize_username(username: str) -> Optional[str]:
+    """'katrin_trofimova__' -> 'Katrin Trofimova'. None if it doesn't look
+    like a personal handle (no separators / too long)."""
+    base = re.sub(r"\d+", "", username).strip("._")
+    parts = [p for p in re.split(r"[._]+", base) if len(p) > 1]
+    if not (2 <= len(parts) <= 3):
+        return None
+    if any(GIMMICK_RE.fullmatch(p) for p in parts):
+        return None
+    return " ".join(p.capitalize() for p in parts)
+
+
+def _extract_person(item: dict, ig_url):
+    """Pull (name, role, company) only when the account is plausibly a real
+    operator: a role keyword AND a company @handle in the bio. Returns None
+    otherwise (filters out gimmick/influencer accounts)."""
+    full = _first(item, "fullName", "full_name") or ""
+    username = item.get("username") or ""
+    bio = _first(item, "biography", "bio") or ""
+
+    # Drop role-gimmick handles like "ceomindset", "founder.life".
+    if GIMMICK_RE.search(username.split("_")[0].split(".")[0]):
+        return None
+
+    hay = f"{full} | {bio}"
+    rm = ROLE_RE.search(hay)
+    if not rm:
+        return None
+    cm = COMPANY_HANDLE_RE.search(bio)
+    person_full = _looks_like_person(full) and not GIMMICK_RE.search(full)
+    # Accept if we have a concrete company @handle OR a clear human full name.
+    if not cm and not person_full:
+        return None
+    role = re.sub(r"\s+", " ", rm.group(0)).strip()
+    company = cm.group(1).strip(" .") if cm else None
+    name = full if person_full else _humanize_username(username)
+    if not name:
+        return None
+    return {"name": name, "role": role, "company": company}
+
+
 def discover_instagram(
     category: str,
     city: str = "",
     country: str = "Ukraine",
     limit: int = 25,
     search_type: str = "user",
+    mode: str = "business",   # "business" = accounts; "people" = C-level persons
     timeout: int = 240,
 ) -> list[Company]:
     token = cfg("APIFY_TOKEN")
@@ -100,10 +149,12 @@ def discover_instagram(
         raise RuntimeError("APIFY_TOKEN not set (env or data/secrets.env) — needed for Instagram source.")
 
     term = f"{category} {city}".strip()
+    if mode == "people":  # bias the search toward founder/CEO personal accounts
+        term = f"{PEOPLE_TERMS} {term}".strip()
     payload = {
         "search": term,
         "searchType": search_type,
-        "searchLimit": max(limit, 1),
+        "searchLimit": max(limit * 2 if mode == "people" else limit, 1),  # over-fetch, filter
         "enhanceUserSearchWithFacebookPage": True,  # adds email/FB to top-10
     }
     r = requests.post(RUN_SYNC, params={"token": token}, json=payload, timeout=timeout)
@@ -115,18 +166,46 @@ def discover_instagram(
 
     companies: list[Company] = []
     seen: set[str] = set()
-    for it in items[:limit]:
+    for it in items:
+        if len(companies) >= limit:
+            break
         username = _first(it, "username", "ownerUsername")
+        ig_url = it.get("url") or (f"https://instagram.com/{username}" if username else None)
+        en = _to_enrichment(it, ig_url)
+        site = _first(it, "externalUrl", "website") or ig_url
+        ba = it.get("businessAddress") or {}
+
+        if mode == "people":
+            person = _extract_person(it, ig_url)
+            if not person:          # keep only real C-level/people accounts
+                continue
+            # The lead is the company they lead (or their personal brand).
+            lead_name = person["company"] or person["name"]
+            if lead_name in seen:
+                continue
+            seen.add(lead_name)
+            en["decision_makers"] = [{
+                "name": person["name"], "role": person["role"],
+                "source_url": ig_url, "linkedin": None,
+                "linkedin_search": f"https://www.linkedin.com/search/results/people/?keywords={quote(person['name'])}",
+                "instagram": ig_url,
+            }]
+            companies.append(Company(
+                name=lead_name, category=category,
+                city=ba.get("city_name") or city, country=country,
+                website=site, phone=(en["phones"] or [None])[0],
+                address=ba.get("city_name"), source="instagram",
+                raw_tags={"size_band": en["profile"]["size_band"], "gmaps_category": en["profile"]["industry"],
+                          "instagram": ig_url, "followers": _first(it, "followersCount", "followers"),
+                          "person_role": person["role"], "_enrichment": en},
+            ))
+            continue
+
+        # --- business mode ---
         name = _first(it, "fullName", "full_name", "name") or username
         if not name or name in seen:
             continue
         seen.add(name)
-        ig_url = it.get("url") or (f"https://instagram.com/{username}" if username else None)
-        en = _to_enrichment(it, ig_url)
-        # Real website (externalUrl) drives enrichment → email/decision-makers
-        # come from the actual site. Fall back to the IG profile if no site.
-        site = _first(it, "externalUrl", "website") or ig_url
-        ba = it.get("businessAddress") or {}
         companies.append(Company(
             name=name, category=category,
             city=ba.get("city_name") or city, country=country,

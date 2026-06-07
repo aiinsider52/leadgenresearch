@@ -64,6 +64,7 @@ class FindRequest(BaseModel):
     enrich: bool = True
     require_website: bool = False
     source: str = "osm"
+    ig_mode: str = "business"
     filters: Filters = Filters()
 
 
@@ -109,7 +110,7 @@ def api_find(req: FindRequest):
     try:
         res = find_leads(req.category, req.city, country=req.country, limit=req.limit,
                          lang=lang, enrich=req.enrich, require_website=req.require_website,
-                         source=req.source)
+                         source=req.source, ig_mode=req.ig_mode)
     except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
     return JSONResponse(_apply_filters(_decorate([l.to_dict() for l in res]), req.filters))
