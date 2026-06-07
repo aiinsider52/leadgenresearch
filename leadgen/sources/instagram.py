@@ -201,65 +201,76 @@ def discover_instagram(
     if isinstance(items, dict) and items.get("error"):
         raise RuntimeError(f"Apify IG error: {items['error']}")
 
-    companies: list[Company] = []
+    def _ctx(it):
+        username = _first(it, "username", "ownerUsername")
+        ig_url = it.get("url") or (f"https://instagram.com/{username}" if username else None)
+        return username, ig_url, _to_enrichment(it, ig_url), \
+            (_first(it, "externalUrl", "website") or ig_url), (it.get("businessAddress") or {})
+
+    def build_person(it):
+        username, ig_url, en, site, ba = _ctx(it)
+        person = _extract_person(it, ig_url)
+        if not person:
+            return None, None
+        en["decision_makers"] = [{
+            "name": person["name"], "role": person["role"], "source_url": ig_url, "linkedin": None,
+            "linkedin_search": f"https://www.linkedin.com/search/results/people/?keywords={quote(person['name'])}",
+            "instagram": ig_url, "confidence": person.get("confidence", "medium"),
+        }]
+        key = (username or ig_url or person["name"]).lower()
+        return key, Company(
+            name=person["company"] or person["name"], category=category,
+            city=ba.get("city_name") or city, country=country, website=site,
+            phone=(en["phones"] or [None])[0], address=ba.get("city_name"), source="instagram",
+            raw_tags={"size_band": en["profile"]["size_band"], "gmaps_category": en["profile"]["industry"],
+                      "instagram": ig_url, "followers": _first(it, "followersCount", "followers"),
+                      "person_role": person["role"], "lead_kind": "person", "_enrichment": en})
+
+    def build_business(it):
+        username, ig_url, en, site, ba = _ctx(it)
+        name = _first(it, "fullName", "full_name", "name") or username
+        if not name:
+            return None, None
+        return name.lower(), Company(
+            name=name, category=category, city=ba.get("city_name") or city, country=country,
+            website=site, phone=(en["phones"] or [None])[0],
+            address=ba.get("city_name") or _first(it, "address", "addressStreet"), source="instagram",
+            raw_tags={"size_band": en["profile"]["size_band"], "gmaps_category": en["profile"]["industry"],
+                      "instagram": ig_url, "followers": _first(it, "followersCount", "followers"),
+                      "verified": it.get("verified"), "lead_kind": "business", "_enrichment": en})
+
+    # Niche tokens to keep the business fill on-topic (drops random global hits).
+    niche_tokens = [w.lower() for w in re.split(r"\s+", category) if len(w) > 2]
+
+    def _relevant(it) -> bool:
+        if not niche_tokens:
+            return True
+        hay = " ".join(str(it.get(k, "")) for k in ("fullName", "biography", "businessCategoryName", "username")).lower()
+        return any(tok in hay for tok in niche_tokens)
+
     seen: set[str] = set()
+    if mode == "people":
+        # People first (real C-level), then the remaining ON-TOPIC business
+        # accounts — so a paid run isn't wasted on the ~half that are companies.
+        people, biz = [], []
+        for it in items:
+            pk, pc = build_person(it)
+            if pc and pk not in seen:
+                seen.add(pk); people.append(pc); continue
+            if not _relevant(it):
+                continue
+            bk, bc = build_business(it)
+            if bc and bk not in seen:
+                seen.add(bk); biz.append(bc)
+        return (people + biz)[:limit]
+
+    companies: list[Company] = []
     for it in items:
         if len(companies) >= limit:
             break
-        username = _first(it, "username", "ownerUsername")
-        ig_url = it.get("url") or (f"https://instagram.com/{username}" if username else None)
-        en = _to_enrichment(it, ig_url)
-        site = _first(it, "externalUrl", "website") or ig_url
-        ba = it.get("businessAddress") or {}
-
-        if mode == "people":
-            person = _extract_person(it, ig_url)
-            if not person:          # keep only real C-level/people accounts
-                continue
-            key = (username or ig_url or person["name"]).lower()  # dedupe by person
-            if key in seen:
-                continue
-            seen.add(key)
-            # The lead is the company they lead (or their personal brand).
-            lead_name = person["company"] or person["name"]
-            en["decision_makers"] = [{
-                "name": person["name"], "role": person["role"],
-                "source_url": ig_url, "linkedin": None,
-                "linkedin_search": f"https://www.linkedin.com/search/results/people/?keywords={quote(person['name'])}",
-                "instagram": ig_url, "confidence": person.get("confidence", "medium"),
-            }]
-            companies.append(Company(
-                name=lead_name, category=category,
-                city=ba.get("city_name") or city, country=country,
-                website=site, phone=(en["phones"] or [None])[0],
-                address=ba.get("city_name"), source="instagram",
-                raw_tags={"size_band": en["profile"]["size_band"], "gmaps_category": en["profile"]["industry"],
-                          "instagram": ig_url, "followers": _first(it, "followersCount", "followers"),
-                          "person_role": person["role"], "_enrichment": en},
-            ))
-            continue
-
-        # --- business mode ---
-        name = _first(it, "fullName", "full_name", "name") or username
-        if not name or name in seen:
-            continue
-        seen.add(name)
-        companies.append(Company(
-            name=name, category=category,
-            city=ba.get("city_name") or city, country=country,
-            website=site,
-            phone=(en["phones"] or [None])[0],
-            address=ba.get("city_name") or _first(it, "address", "addressStreet"),
-            source="instagram",
-            raw_tags={
-                "size_band": en["profile"]["size_band"],
-                "gmaps_category": en["profile"]["industry"],
-                "instagram": ig_url,
-                "followers": _first(it, "followersCount", "followers"),
-                "verified": it.get("verified"),
-                "_enrichment": en,
-            },
-        ))
+        bk, bc = build_business(it)
+        if bc and bk not in seen:
+            seen.add(bk); companies.append(bc)
     return companies
 
 
