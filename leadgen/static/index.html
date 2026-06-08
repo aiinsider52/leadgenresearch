@@ -137,7 +137,7 @@ tailwind.config = {
       </div>
       <span id="srcHint" class="text-xs text-zinc-400 ml-auto self-center"></span>
     </div>
-    <select id="source" class="hidden"><option value="osm">osm</option><option value="gmaps">gmaps</option><option value="instagram">instagram</option></select>
+    <select id="source" class="hidden"><option value="osm">osm</option><option value="gmaps">gmaps</option><option value="instagram">instagram</option><option value="jobs">jobs</option></select>
   </div>
 
   <div class="grid lg:grid-cols-[300px_1fr] gap-5">
@@ -277,6 +277,7 @@ const ICONS={
  map:'<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/>',
  chart:'<path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="13" width="3" height="4"/>',
  target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
+ briefcase:'<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M2 13h20"/>',
  filter:'<path d="M22 3H2l8 9.5V20l4 2v-9.5L22 3Z"/>',
  sparkle:'<path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/>',
  moon:'<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/>',
@@ -376,7 +377,7 @@ function card(l){const u=UI[lang],c=l.company||{},en=l.enrichment||{};
  const profChips=[
    c.rating?chip(svg('star','w-3 h-3 text-amber-400')+c.rating+(c.reviews?` · ${c.reviews>999?(c.reviews/1000).toFixed(1)+'K':c.reviews}`:''),'bg-amber-500/10 text-amber-600 dark:text-amber-400'):'',
    (p.employees||sizeBand)?chip(svg('user','w-3 h-3')+(p.employees?esc(p.employees)+' '+u.emp:esc(sizeBand)),sizeC||'bg-black/5 dark:bg-white/5 text-zinc-500'):'',
-   sig.hiring?chip(svg('trend','w-3 h-3')+(sig.open_positions?sig.open_positions+' ':'' )+(lang==='en'?'hiring':lang==='ru'?'наём':'наймає'),'bg-emerald-500/15 text-emerald-500'):'',
+   sig.hiring?chip(svg('briefcase','w-3 h-3')+((sig.hiring_for&&sig.hiring_for.length)?esc(sig.hiring_for[0].slice(0,28)):(lang==='en'?'hiring':lang==='ru'?'наём':'наймає')),'bg-emerald-500/15 text-emerald-500'):'',
    p.founded?chip(esc(u.founded)+' '+esc(p.founded),'bg-black/5 dark:bg-white/5 text-zinc-500'):'',
    (en.staff||[]).length?chip(svg('user','w-3 h-3')+(en.staff.length)+' '+esc(u.staff.toLowerCase()),'bg-black/5 dark:bg-white/5 text-zinc-500'):'',
  ].filter(Boolean).join('');
@@ -471,6 +472,7 @@ const SOURCES=[
   {v:'osm',ic:'map',label:'OSM',hint:{uk:'швидко, безкоштовно · фіз. місця',ru:'быстро, бесплатно · физ. места',en:'fast, free · physical places'}},
   {v:'gmaps',ic:'pin',label:'Maps',hint:{uk:'рейтинги, відгуки, сайти',ru:'рейтинги, отзывы, сайты',en:'ratings, reviews, sites'}},
   {v:'instagram',ic:'instagram',label:'IG',hint:{uk:'засновники + email (Apify)',ru:'основатели + email (Apify)',en:'founders + email (Apify)'}},
+  {v:'jobs',ic:'briefcase',label:'Jobs',hint:{uk:'сигнали найму · вакансія + контакт (LinkedIn)',ru:'сигналы найма · вакансия + контакт',en:'hiring signals · job + contact'}},
 ];
 let sourceMode=localStorage.getItem('lg_src')||'osm';
 function paintSources(){const seg=$('#sourceSeg');seg.innerHTML=SOURCES.map(s=>{

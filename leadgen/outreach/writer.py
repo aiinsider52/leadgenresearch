@@ -39,19 +39,31 @@ def write_message(lead: dict, person_index: int = 0, channel: str = "email", lan
     ch = channel if channel in CHANNEL else "email"
     lng = lang if lang in _T else "uk"
 
+    sig = en.get("signals", {}) or {}
+    hiring_for = sig.get("hiring_for") or []
+    hiring_line = ""
+    extra_sys = ""
+    if hiring_for:
+        roles = ", ".join(hiring_for[:2])
+        hiring_line = f"\nHIRING SIGNAL: they posted a job for '{roles}'. "
+        extra_sys = (" The prospect is actively HIRING for a role. Open by referencing that job and "
+                     "pitch automating ~80% of that work instead of (or alongside) hiring — this is the hook.")
+
     text = llm.complete(
         system=(
-            f"You write concise, non-salesy B2B cold outreach in {_LANG_NAME.get(lng,'Ukrainian')}. "
+            f"You write concise, non-salesy B2B cold outreach. "
+            f"Write the ENTIRE message in {_LANG_NAME.get(lng,'Ukrainian')} (even if the company "
+            f"name, role or website are in English — body, subject and CTA must be {_LANG_NAME.get(lng,'Ukrainian')}). "
             f"Channel: {CHANNEL[ch]['en']} ({CHANNEL[ch]['limit']}). "
-            "One clear value prop, one soft CTA. No fluff, no emojis overload. "
-            "We are an automation agency selling ready-made n8n AI automations."
+            "One clear value prop, one soft CTA. No fluff, no emoji overload. "
+            "We are an automation agency selling ready-made n8n AI automations." + extra_sys
         ),
         user=(
             f"Recipient: {name or 'decision maker'} ({role}) at {comp}.\n"
             f"Most relevant automation to offer: {autos[0]['name'] if autos else 'process automation'} "
             f"— {pitch}\n"
             f"Company facts: rating {company.get('rating')}, size {company.get('size_band')}, "
-            f"hiring={en.get('signals',{}).get('hiring')}.\n"
+            f"hiring={sig.get('hiring')}.{hiring_line}\n"
             "Write the message."
         ),
         max_tokens=500,

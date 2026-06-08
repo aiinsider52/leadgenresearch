@@ -145,7 +145,13 @@ def find_leads(
     if progress:
         progress(f"discover:{source}:{category}:{city}")
     companies = []
-    if source == "instagram":
+    if source == "jobs":
+        # Hiring-signal leads from LinkedIn Jobs (company + poster contact).
+        from .sources.jobs import discover_jobs
+        companies = discover_jobs(category_label, city, country=country, limit=limit)
+        for c in companies:
+            c.category = category
+    elif source == "instagram":
         # IG-native niches: founders/personal brands + emails via Apify actor.
         from .sources.instagram import discover_instagram
         companies = discover_instagram(category_label, city, country=country, limit=limit, mode=ig_mode)
@@ -165,7 +171,7 @@ def find_leads(
         except Exception as exc:
             if progress:
                 progress(f"gmaps_failed:{exc}")
-    if not companies and source != "instagram":  # default / fallback
+    if not companies and source not in ("instagram", "jobs"):  # default / fallback
         companies = discover(category, city, country=country, limit=limit,
                              require_website=require_website)
     return _process(companies, lang, enrich, progress, category=category)
