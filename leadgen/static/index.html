@@ -251,6 +251,20 @@ tailwind.config = {
   </div>
 </div>
 
+<!-- ░░ Lead detail popup ░░ -->
+<div id="leadModal" class="fixed inset-0 z-50 hidden">
+  <div id="leadModalBg" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+  <div class="absolute inset-0 grid place-items-center p-4">
+    <div class="w-full max-w-xl max-h-[88vh] overflow-y-auto bg-zinc-50 dark:bg-zinc-950 border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl">
+      <header class="sticky top-0 glass border-b border-black/5 dark:border-white/5 px-5 py-4 flex items-center justify-between gap-3">
+        <div class="min-w-0 flex items-center gap-3" id="lmHead"></div>
+        <button id="lmClose" class="shrink-0 w-9 h-9 grid place-items-center rounded-xl border border-black/10 dark:border-white/10 hover:bg-zinc-100 dark:hover:bg-zinc-800"><span class="ic" data-ic="close"></span></button>
+      </header>
+      <div class="p-5 space-y-4" id="lmBody"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ---- SVG icon set (Lucide-style, stroke=currentColor) ----
 const ICONS={
@@ -414,7 +428,7 @@ function card(l){const u=UI[lang],c=l.company||{},en=l.enrichment||{};
      ${socials}${tg}
      ${c.website?`<a href="${esc(c.website)}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium bg-black/5 dark:bg-white/5 text-zinc-600 dark:text-zinc-300 hover:text-brand-500">${svg('ext','w-3 h-3')}site</a>`:''}
    </div>
-   ${autos?`<details open class="group mt-3.5 pt-3.5 border-t border-black/5 dark:border-white/5">
+   ${autos?`<details class="group mt-3.5 pt-3.5 border-t border-black/5 dark:border-white/5">
      <summary class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
        ${svg('sparkle','w-3.5 h-3.5 text-violet-400')}${u.autos}
        <span class="px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-500 text-[10px] tabular-nums">${(l.automations||[]).length}</span>
@@ -439,6 +453,8 @@ function render(leads,total){const u=UI[lang],out=$('#results');
    const tg=el.querySelector('.pl-tags');if(tg)tg.onchange=()=>savePipeline(el.dataset.id,{tags:tg.value.split(',').map(s=>s.trim()).filter(Boolean)});
    const nt=el.querySelector('.pl-notes');if(nt)nt.onblur=()=>savePipeline(el.dataset.id,{notes:nt.value});
    const cb=el.querySelector('.bulk-cb');if(cb)cb.onchange=()=>{cb.checked?selectedIds.add(el.dataset.id):selectedIds.delete(el.dataset.id);updateBulkBar();};
+   el.style.cursor='pointer';
+   el.addEventListener('click',ev=>{if(ev.target.closest('button,a,input,select,textarea,summary,details,label'))return;openLeadDetail(el.dataset.id);});
  });
  updateBulkBar();
  if(tab==='search'&&lastLeads.length)$('#status').textContent=u.found(leads.length,lastLeads.length);
@@ -542,6 +558,63 @@ async function genMessage(){$('#dwMsg').value='…';
   const d=await r.json();$('#dwMsg').value=d.message||'';}
 $('#dwGen').onclick=genMessage;
 $('#dwCopy').onclick=()=>{const u=UI[lang];navigator.clipboard.writeText($('#dwMsg').value);const b=$('#dwCopy').querySelector('span:last-child');const o=b.textContent;b.textContent=u.copied;setTimeout(()=>b.textContent=o,1500);};
+
+// ---- lead detail popup ----
+function lmChip(html,cls){return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium ${cls}">${html}</span>`;}
+function lmSection(title,inner){return inner?`<div><div class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-2">${title}</div>${inner}</div>`:'';}
+function openLeadDetail(id){
+  const u=UI[lang],l=findLead(id);if(!l)return;
+  const c=l.company||{},en=l.enrichment||{},s=l.score||{},sig=en.signals||{},p=en.profile||{};
+  const tierC={hot:'bg-rose-500',warm:'bg-amber-500',cold:'bg-zinc-400 dark:bg-zinc-600'}[s.tier]||'bg-zinc-400';
+  $('#lmHead').innerHTML=`${s.score!=null?`<div class="shrink-0 w-12 h-12 rounded-xl ${tierC} text-white grid place-items-center font-display font-bold">${s.score}</div>`:''}
+    <div class="min-w-0"><div class="font-display font-bold truncate">${esc(c.name||'')}</div>
+    <div class="text-xs text-zinc-500 flex items-center gap-1">${svg('pin','w-3 h-3')}<span class="truncate">${esc(c.address||c.city||'')}</span><span class="px-1.5 rounded bg-black/5 dark:bg-white/10 capitalize ml-1">${esc(c.source||'')}</span></div></div>`;
+
+  // Company facts
+  const emp=c.employees||p.employees, band=p.size_band||c.size_band;
+  const facts=[ (emp||band)?lmChip(svg('user','w-3 h-3')+(emp?esc(emp)+' '+u.emp:esc(band)),'bg-black/5 dark:bg-white/10 text-zinc-500'):'',
+    c.rating?lmChip(svg('star','w-3 h-3 text-amber-400')+c.rating+(c.reviews?` · ${c.reviews}`:''),'bg-amber-500/10 text-amber-500'):'',
+    p.founded?lmChip(u.founded+' '+esc(p.founded),'bg-black/5 dark:bg-white/10 text-zinc-500'):'',
+    (c.gmaps_category||c.category)?lmChip(esc(c.gmaps_category||c.category),'bg-black/5 dark:bg-white/10 text-zinc-500'):'' ].filter(Boolean).join(' ');
+
+  // Vacancy (jobs source)
+  let vacancy='';
+  if(c.source==='jobs'||(sig.hiring_for&&sig.hiring_for.length)){
+    const roles=(sig.hiring_for||[]).map(r=>lmChip(svg('briefcase','w-3 h-3')+esc(r),'bg-emerald-500/15 text-emerald-500')).join(' ');
+    const posted=sig.posted_at?`<div class="text-xs text-zinc-400 mt-1">Опубліковано: ${esc(sig.posted_at)}</div>`:'';
+    const jobLink=sig.job_url?`<a href="${esc(sig.job_url)}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 mt-1.5 text-xs text-brand-500 hover:underline">${svg('ext','w-3 h-3')}Вакансія на LinkedIn</a>`:'';
+    vacancy=lmSection('Вакансія (сигнал найму)',`<div>${roles}${posted}${jobLink}</div>`);
+  }
+
+  // Instagram
+  let insta='';const igUrl=c.instagram||en.socials?.instagram;
+  if(igUrl){insta=lmSection('Instagram',`<div class="flex items-center gap-2 flex-wrap">
+    <a href="${esc(igUrl)}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-pink-500/10 text-pink-500 text-sm hover:bg-pink-500/20">${svg('instagram','w-4 h-4')}${esc(igUrl.replace(/^https?:\/\/(www\.)?instagram\.com\//,'@').replace(/\/$/,''))}</a>
+    ${c.followers?lmChip(esc(String(c.followers))+' підписників','bg-black/5 dark:bg-white/10 text-zinc-500'):''}</div>`);}
+
+  // Contacts
+  const emails=(en.emails||[]).map(e=>`<a href="mailto:${esc(e)}" class="flex items-center gap-1.5 text-sm hover:text-brand-500">${svg('mail','w-3.5 h-3.5 text-zinc-400')}${esc(e)}</a>`).join('');
+  const phones=(en.phones||[]).map(p=>`<div class="flex items-center gap-1.5 text-sm">${svg('phone','w-3.5 h-3.5 text-zinc-400')}${esc(p)}</div>`).join('');
+  const tg=(en.telegram||[]).map(h=>`<a href="https://t.me/${esc(h)}" target="_blank" class="flex items-center gap-1.5 text-sm text-sky-500">${svg('send','w-3.5 h-3.5')}@${esc(h)}</a>`).join('');
+  const socials=Object.entries(en.socials||{}).map(([k,v])=>`<a href="${esc(v)}" target="_blank" rel="noopener" class="px-2 py-1 rounded-lg text-xs bg-black/5 dark:bg-white/10 text-zinc-600 dark:text-zinc-300 hover:text-brand-500 capitalize">${esc(k)}</a>`).join('');
+  const site=c.website?`<a href="${esc(c.website)}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-sm text-brand-500 hover:underline">${svg('ext','w-3.5 h-3.5')}${esc(c.website.replace(/^https?:\/\//,'').slice(0,40))}</a>`:'';
+  const contactsLabel=lang==='en'?'Contacts':lang==='ru'?'Контакты':'Контакти';
+  const contacts=lmSection(contactsLabel,`<div class="space-y-1.5">${emails}${phones}${tg}${site?`<div>${site}</div>`:''}<div class="flex flex-wrap gap-1.5 pt-1">${socials}</div></div>`);
+
+  // Decision makers
+  const dm=(en.decision_makers||[]).map(pp=>{const li=pp.linkedin||pp.linkedin_search;
+    return `<div class="flex items-center gap-2 text-sm"><span>${svg('user','w-4 h-4 text-zinc-400')}</span><span class="font-medium">${esc(pp.name||'')}</span><span class="text-zinc-400">${esc(pp.role||'')}</span>${li?`<a href="${esc(li)}" target="_blank" rel="noopener" class="text-sky-500">${svg('linkedin','w-4 h-4')}</a>`:''}</div>`;}).join('');
+  const people=lmSection(u.dm,dm?`<div class="space-y-1.5">${dm}</div>`:'');
+
+  $('#lmBody').innerHTML=`
+    ${facts?`<div class="flex flex-wrap gap-1.5">${facts}</div>`:''}
+    ${vacancy}${insta}${people}${contacts}
+    <button id="lmWrite" class="w-full bg-gradient-to-r from-brand-600 to-violet-600 hover:from-brand-500 hover:to-violet-500 text-white rounded-xl px-4 py-3 font-semibold flex items-center justify-center gap-2">${svg('pen','w-5 h-5')}${u.write_msg}</button>`;
+  $('#lmWrite').onclick=()=>{closeLeadDetail();openOutreach(id);};
+  $('#leadModal').classList.remove('hidden');document.body.style.overflow='hidden';
+}
+function closeLeadDetail(){$('#leadModal').classList.add('hidden');document.body.style.overflow='';}
+$('#lmClose').onclick=$('#leadModalBg').onclick=closeLeadDetail;
 
 // ---- bulk actions ----
 function selectedLeads(){const pool=[...lastLeads,...savedLeads];return [...selectedIds].map(id=>pool.find(l=>l._id===id)).filter(Boolean);}

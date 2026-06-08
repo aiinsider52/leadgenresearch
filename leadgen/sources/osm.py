@@ -58,8 +58,9 @@ class Company:
 
     def to_dict(self) -> dict:
         d = {k: v for k, v in self.__dict__.items() if k != "raw_tags"}
-        # Surface useful gmaps metadata (rating/reviews/size) for the UI.
-        for key in ("rating", "reviews", "size_band", "gmaps_category"):
+        # Surface useful metadata (gmaps/IG/jobs) for the UI lead popup.
+        for key in ("rating", "reviews", "size_band", "gmaps_category",
+                    "instagram", "followers", "employees", "company_linkedin", "verified"):
             if key in self.raw_tags and self.raw_tags[key] is not None:
                 d[key] = self.raw_tags[key]
         return d
