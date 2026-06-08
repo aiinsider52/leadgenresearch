@@ -30,13 +30,29 @@ def _size_from_employees(n) -> Optional[str]:
     return "micro" if n <= 10 else "small" if n <= 50 else "medium" if n <= 250 else "large"
 
 
-def _jobs_url(role: str, location: str) -> str:
+# LinkedIn geoIds for precise location filtering (text location alone is loose).
+GEO_IDS = {"ukraine": "102264497", "україна": "102264497", "украина": "102264497",
+           "poland": "105072130", "germany": "101282230", "united states": "103644278", "usa": "103644278"}
+# Tokens used to post-filter results to the requested geography.
+GEO_TOKENS = {"ukraine": ("ukraine", "україн", "украин")}
+
+
+def _jobs_url(role: str, location: str, geo_id: str = "") -> str:
     q = quote(role.strip())
-    loc = quote(location.strip()) if location else ""
     url = f"https://www.linkedin.com/jobs/search/?keywords={q}"
-    if loc:
-        url += f"&location={loc}"
+    if location:
+        url += f"&location={quote(location.strip())}"
+    if geo_id:
+        url += f"&geoId={geo_id}"
     return url
+
+
+def _matches_geo(job_location: str, city: str, country: str) -> bool:
+    loc = (job_location or "").lower()
+    tokens = list(GEO_TOKENS.get((country or "").lower(), ((country or "").lower(),)))
+    if city:
+        tokens.append(city.lower())
+    return any(t and t in loc for t in tokens)
 
 
 def discover_jobs(role: str, city: str = "", country: str = "Ukraine",
@@ -48,9 +64,11 @@ def discover_jobs(role: str, city: str = "", country: str = "Ukraine",
     if not usage.allowed("apify"):
         raise RuntimeError("Apify budget exceeded for this month — raise APIFY_BUDGET_USD.")
 
-    location = city or country
-    payload = {"urls": [_jobs_url(role, location)], "scrapeCompany": True,
-               "count": max(limit, 10)}
+    location = f"{city}, {country}" if city and country else (city or country)
+    geo_id = GEO_IDS.get((country or "").lower(), "")
+    # over-fetch — we post-filter by location to enforce the geo strictly.
+    payload = {"urls": [_jobs_url(role, location, geo_id)], "scrapeCompany": True,
+               "count": max(limit * 2, 20)}
     r = requests.post(RUN_SYNC, params={"token": token}, json=payload, timeout=timeout)
     usage.record("apify")
     if r.status_code >= 400:
@@ -64,6 +82,8 @@ def discover_jobs(role: str, city: str = "", country: str = "Ukraine",
     for it in items:
         name = it.get("companyName")
         if not name:
+            continue
+        if not _matches_geo(it.get("location"), city, country):  # enforce geography
             continue
         key = (it.get("companyWebsite") or name).lower()
         title = it.get("title")
