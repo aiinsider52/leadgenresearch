@@ -179,7 +179,7 @@ def api_analyze(req: AnalyzeRequest):
 
 @app.get("/api/ai_status")
 def api_ai_status():
-    return JSONResponse({"ai": llm.available()})
+    return JSONResponse(llm.status())
 
 
 @app.get("/api/export.csv")

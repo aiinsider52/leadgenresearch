@@ -462,7 +462,7 @@ $('#dwCopy').onclick=()=>{const u=UI[lang];navigator.clipboard.writeText($('#dwM
 // ---- export + AI status ----
 $('#exportBtn').onclick=()=>window.open('/api/export.csv?scope='+(tab==='saved'?'saved':'recent'),'_blank');
 async function refreshAi(){const u=UI[lang];try{const d=await (await fetch('/api/ai_status')).json();const p=$('#aiPill');
-  p.textContent=(d.ai?'🟢 ':'⚪ ')+(d.ai?u.ai_on:u.ai_off);
+  p.textContent=d.ai?('🟢 '+(d.model||u.ai_on)):('⚪ '+u.ai_off);
   p.className='hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium border '+(d.ai?'border-emerald-500/30 text-emerald-500 bg-emerald-500/10':'border-black/10 dark:border-white/10 text-zinc-400');}catch(e){}}
 
 // ---- map ----
