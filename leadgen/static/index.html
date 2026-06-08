@@ -168,6 +168,11 @@ tailwind.config = {
       <button class="filterchip" data-f="linkedin" data-ic="link" data-i="f_linkedin">LinkedIn</button>
       <button class="filterchip" data-f="telegram" data-ic="send" data-i="f_telegram">Telegram</button>
       <button class="filterchip" data-f="dm"     data-ic="user"   data-i="f_dm">керівник</button>
+      <select id="statusFilter" class="hidden ml-auto bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-medium cursor-pointer">
+        <option value="all">Всі статуси</option>
+        <option value="new">Новий</option><option value="contacted">Написав</option>
+        <option value="replied">Відповів</option><option value="client">Клієнт</option><option value="rejected">Відмова</option>
+      </select>
       <select id="sort" class="ml-auto bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-medium cursor-pointer">
         <option value="score" data-i="sort_score">За рейтингом ліда</option>
         <option value="reviews" data-i="sort_reviews">За відгуками</option>
@@ -300,7 +305,11 @@ $('#theme').onclick=()=>setTheme(!document.documentElement.classList.contains('d
 function paintTabs(){$$('.tabbtn').forEach(b=>{const on=b.dataset.tab===tab;
  b.classList.toggle('bg-white',on);b.classList.toggle('dark:bg-zinc-800',on);b.classList.toggle('shadow',on);b.classList.toggle('text-brand-600',on);b.classList.toggle('dark:text-white',on);
  b.classList.toggle('text-zinc-500',!on);});}
-$$('.tabbtn').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;paintTabs();tab==='saved'?loadSaved():renderCurrent();});
+let statusFilter='all';
+$('#statusFilter').onchange=e=>{statusFilter=e.target.value;renderCurrent();};
+$$('.tabbtn').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;paintTabs();
+  $('#statusFilter').classList.toggle('hidden',tab!=='saved');
+  tab==='saved'?loadSaved():renderCurrent();});
 
 // ---- filters ----
 function paintChips(){$$('.filterchip').forEach(c=>{const on=filters[c.dataset.f];
@@ -319,12 +328,24 @@ function leadPasses(l){const en=l.enrichment||{},s=en.socials||{};
  return true;}
 
 function renderCurrent(){const base=tab==='saved'?savedLeads:lastLeads;let vis=base.filter(leadPasses);
+ if(tab==='saved'&&statusFilter!=='all')vis=vis.filter(l=>(l.status||'new')===statusFilter);
  if(sortMode==='score')vis=[...vis].sort((a,b)=>((b.score||{}).score||0)-((a.score||{}).score||0));
  else if(sortMode==='reviews')vis=[...vis].sort((a,b)=>((b.company||{}).reviews||0)-((a.company||{}).reviews||0));
  render(vis,base.length);}
 
 // ---- card ----
 function chip(html,cls){return `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${cls}">${html}</span>`;}
+const PL_STATUSES={new:{l:{uk:'Новий',ru:'Новый',en:'New'},c:'bg-zinc-400'},contacted:{l:{uk:'Написав',ru:'Написал',en:'Contacted'},c:'bg-sky-500'},replied:{l:{uk:'Відповів',ru:'Ответил',en:'Replied'},c:'bg-amber-500'},client:{l:{uk:'Клієнт',ru:'Клиент',en:'Client'},c:'bg-emerald-500'},rejected:{l:{uk:'Відмова',ru:'Отказ',en:'Rejected'},c:'bg-rose-500'}};
+function pipelineBlock(l){const st=l.status||'new',tags=l.tags||[];
+  const opts=Object.keys(PL_STATUSES).map(k=>`<option value="${k}" ${k===st?'selected':''}>${PL_STATUSES[k].l[lang]}</option>`).join('');
+  return `<div class="mt-2.5 space-y-2 rounded-xl bg-black/[.03] dark:bg-white/[.04] border border-black/5 dark:border-white/5 p-2.5">
+    <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full ${PL_STATUSES[st].c} shrink-0"></span>
+      <select class="pl-status flex-1 bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-lg px-2 py-1 text-xs cursor-pointer">${opts}</select></div>
+    <input class="pl-tags w-full bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-lg px-2 py-1 text-xs" placeholder="теги, через кому" value="${esc(tags.join(', '))}">
+    <textarea class="pl-notes w-full bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-lg px-2 py-1 text-xs resize-y" rows="2" placeholder="нотатки…">${esc(l.notes||'')}</textarea>
+  </div>`;}
+async function savePipeline(id,fields){const lead=savedLeads.find(l=>l._id===id);if(lead)Object.assign(lead,fields);
+  await fetch('/api/update_saved',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,...fields})});}
 function card(l){const u=UI[lang],c=l.company||{},en=l.enrichment||{};
  const emails=(en.emails||[]).slice(0,2),phones=(en.phones||[]).slice(0,2);
  const socials=Object.entries(en.socials||{}).map(([k,v])=>`<a href="${esc(v)}" target="_blank" rel="noopener" class="px-2 py-1 rounded-lg text-[11px] font-medium bg-black/5 dark:bg-white/5 text-zinc-600 dark:text-zinc-300 hover:bg-brand-500/15 hover:text-brand-500 capitalize">${esc(k)}</a>`).join('');
@@ -371,6 +392,7 @@ function card(l){const u=UI[lang],c=l.company||{},en=l.enrichment||{};
          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="${liked?'currentColor':'none'}" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONS.heart}</svg></button>
      </div>
    </header>
+   ${tab==='saved'?pipelineBlock(l):''}
    ${profChips?`<div class="flex flex-wrap gap-1.5 mt-2.5">${profChips}</div>`:''}
    <div class="mt-3 space-y-1.5">
      ${emails.map(e=>`<a href="mailto:${esc(e)}" class="flex items-center gap-1.5 text-sm text-zinc-700 dark:text-zinc-200 hover:text-brand-500">${svg('mail','w-3.5 h-3.5 text-zinc-400')}<span class="truncate">${esc(e)}</span></a>`).join('')}
@@ -402,6 +424,9 @@ function render(leads,total){const u=UI[lang],out=$('#results');
  out.querySelectorAll('.card').forEach(el=>{
    el.querySelector('.heart').onclick=()=>toggleSave(el.dataset.id);
    const mb=el.querySelector('.msg'); if(mb)mb.onclick=()=>openOutreach(el.dataset.id);
+   const ss=el.querySelector('.pl-status');if(ss)ss.onchange=()=>savePipeline(el.dataset.id,{status:ss.value});
+   const tg=el.querySelector('.pl-tags');if(tg)tg.onchange=()=>savePipeline(el.dataset.id,{tags:tg.value.split(',').map(s=>s.trim()).filter(Boolean)});
+   const nt=el.querySelector('.pl-notes');if(nt)nt.onblur=()=>savePipeline(el.dataset.id,{notes:nt.value});
  });
  if(tab==='search'&&lastLeads.length)$('#status').textContent=u.found(leads.length,lastLeads.length);
 }
