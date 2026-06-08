@@ -58,13 +58,20 @@ def ai_recommend(lead: dict, lang: str = "uk", n: int = 3) -> list[dict] | None:
     if not items:
         return None
 
+    def _as_str(v, default=""):
+        if isinstance(v, list):
+            return " ".join(str(x) for x in v)
+        return str(v) if v else default
+
     out: list[dict] = []
     for it in items[:n]:
-        title = (it.get("title") or "").strip()
+        if not isinstance(it, dict):
+            continue
+        title = _as_str(it.get("title")).strip()
         if not title:
             continue
         tmpl = None
-        kw = (it.get("search") or title).strip()
+        kw = (_as_str(it.get("search")) or title).strip()
         try:
             hits = search_templates(kw, rows=1)
             if hits:
@@ -73,7 +80,7 @@ def ai_recommend(lead: dict, lang: str = "uk", n: int = 3) -> list[dict] | None:
             tmpl = None
         out.append({
             "name": title,
-            "pitch": (it.get("pitch") or "").strip(),
+            "pitch": _as_str(it.get("pitch")).strip(),
             "search": kw,
             "template": tmpl,
             "ai": True,

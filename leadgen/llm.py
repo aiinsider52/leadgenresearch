@@ -58,14 +58,17 @@ def complete(system: str, user: str, max_tokens: int = 700, temperature: float =
                 return (r.json()["choices"][0]["message"]["content"] or "").strip() or None
             except Exception:
                 return None
-        # 400/404 = bad/unknown model → try the next in the chain.
-        if r.status_code in (400, 404):
+        # 400/403/404 = model unknown / no access on this project → try next.
+        if r.status_code in (400, 403, 404):
             continue
-        # auth / rate / server error → stop, fall back to template.
+        # 401 auth / 429 rate / 5xx server → stop, fall back to template.
         return None
     return None
 
 
 def status() -> dict:
-    """For the UI: whether AI is on + which model is actually serving."""
+    """For the UI: whether AI is on + which model is actually serving.
+    Probes once (cheap) to resolve the real working model if not known yet."""
+    if available() and _working_model is None:
+        complete("ping", "ping", max_tokens=1)  # populates _working_model
     return {"ai": available(), "model": _working_model or get("LEADGEN_MODEL", PRIMARY_MODEL)}
