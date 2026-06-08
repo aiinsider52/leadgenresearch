@@ -122,6 +122,7 @@ tailwind.config = {
         <input id="country" class="w-36 bg-white dark:bg-zinc-900/70 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-sm" value="Ukraine"></div>
       <div><label class="block text-[11px] mb-1 text-zinc-500 dark:text-zinc-400" data-i="limit">Кількість</label>
         <input id="limit" type="number" min="1" max="60" class="w-24 bg-white dark:bg-zinc-900/70 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-sm" value="15"></div>
+      <button type="button" id="allCities" class="px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium self-end" title="Пошук по кількох містах">🇺🇦 топ-міста</button>
       <label class="flex items-center gap-2.5 text-sm cursor-pointer select-none py-2">
         <input type="checkbox" id="enrich" checked class="peer sr-only">
         <span class="w-9 h-5 rounded-full bg-zinc-300 dark:bg-zinc-700 peer-checked:bg-brand-500 relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition peer-checked:after:translate-x-4"></span>
@@ -185,13 +186,21 @@ tailwind.config = {
   </div>
 </main>
 
+<!-- ░░ Bulk action bar ░░ -->
+<div id="bulkBar" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-40 glass rounded-2xl shadow-2xl px-4 py-2.5 flex items-center gap-3">
+  <span id="bulkCount" class="text-sm font-medium"></span>
+  <button id="bulkSave" class="bg-rose-500 hover:bg-rose-600 text-white rounded-lg px-3 py-1.5 text-sm font-medium">♥ Зберегти</button>
+  <button id="bulkExport" class="bg-brand-600 hover:bg-brand-500 text-white rounded-lg px-3 py-1.5 text-sm font-medium flex items-center gap-1.5">${''}CSV</button>
+  <button id="bulkClear" class="w-7 h-7 grid place-items-center rounded-lg text-zinc-400 hover:bg-black/5 dark:hover:bg-white/10">✕</button>
+</div>
+
 <!-- ░░ Outreach drawer ░░ -->
 <div id="drawer" class="fixed inset-0 z-50 hidden">
   <div id="drawerBg" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
   <aside class="absolute right-0 top-0 h-full w-full max-w-lg bg-zinc-50 dark:bg-zinc-950 border-l border-black/10 dark:border-white/10 overflow-y-auto shadow-2xl">
     <header class="sticky top-0 glass border-b border-black/5 dark:border-white/5 px-5 py-4 flex items-center justify-between z-10">
       <div class="min-w-0">
-        <div class="font-display font-bold truncate" id="dwName">—</div>
+        <div class="font-display font-bold truncate flex items-center gap-2"><span id="dwName">—</span><span id="dwFit" class="hidden shrink-0 px-2 py-0.5 rounded-md text-[10px] font-bold"></span></div>
         <div class="text-xs text-zinc-500 dark:text-zinc-400 truncate" id="dwSub"></div>
       </div>
       <button id="dwClose" class="w-9 h-9 grid place-items-center rounded-xl border border-black/10 dark:border-white/10 hover:bg-zinc-100 dark:hover:bg-zinc-800"><span class="ic" data-ic="close"></span></button>
@@ -285,7 +294,7 @@ const UI={
  en:{title:"LeadGen",tab_search:"Search",tab_saved:"Saved",search:"Search",category:"Category",city:"City",country:"Country",limit:"Limit",enrich:"Enrich contacts",run:"Find leads",map_title:"Search on map",map_hint:"Pan the map to your area (or click a point), then hit “Search here”.",search_here:"Search here",filters:"Filters",f_email:"email",f_phone:"phone",f_linkedin:"LinkedIn",f_telegram:"Telegram",f_dm:"exec",loading:"Searching…",found:(n,t)=>`Showing ${n} of ${t}`,none:"No results",dm:"Decision makers",autos:"Our offers",templates:"Ready n8n templates",staff:"Team",founded:"Founded",source:"Source",emp:"employees",save:"Save",saved:"Saved",empty_saved:"Nothing saved yet. Tap ♥ on a card.",write_msg:"Generate message",analysis:"Company analysis",message:"Message",gen:"Generate",regen:"Regenerate",copy:"Copy",copied:"Copied ✓",export:"Export CSV",ai_on:"AI on",ai_off:"AI off (templates)",contact:"Contact",sort:"Sort",sort_score:"By lead score",sort_reviews:"By reviews",sort_default:"Default",ig_mode:"Instagram type",ig_biz:"Businesses",ig_people:"People (C-level)",ai_recs:"Recommended automations"}
 };
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
-let lang=localStorage.getItem('lg_lang')||'uk', tab='search', lastLeads=[], savedLeads=[], picked=null, marker=null, circle=null, tiles=null, sortMode='score';
+let lang=localStorage.getItem('lg_lang')||'uk', tab='search', lastLeads=[], savedLeads=[], picked=null, marker=null, circle=null, tiles=null, sortMode='score', selectedIds=new Set();
 const filters={email:false,phone:false,linkedin:false,telegram:false,dm:false};
 
 function applyLang(){const u=UI[lang];document.documentElement.lang=lang;$('#lang').value=lang;
@@ -387,6 +396,7 @@ function card(l){const u=UI[lang],c=l.company||{},en=l.enrichment||{};
        <div class="text-xs text-zinc-500 dark:text-zinc-400 mt-1 flex items-center gap-1">${svg('pin','w-3 h-3 shrink-0')}<span class="truncate">${esc(c.address||c.city||'')}</span></div>
      </div>
      <div class="shrink-0 flex items-center gap-1.5">
+       <input type="checkbox" class="bulk-cb w-4 h-4 rounded accent-brand-500 cursor-pointer" ${selectedIds.has(l._id)?'checked':''} title="Виділити">
        <button class="msg w-9 h-9 grid place-items-center rounded-xl border border-black/10 dark:border-white/10 text-violet-500 hover:bg-violet-500/10 hover:border-violet-400" title="${u.write_msg}">${svg('pen','w-5 h-5')}</button>
        <button class="heart w-9 h-9 grid place-items-center rounded-xl border border-black/10 dark:border-white/10 hover:border-rose-400 ${liked?'text-rose-500 bg-rose-500/10 border-rose-500/40':'text-zinc-400'}" title="${liked?u.saved:u.save}">
          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="${liked?'currentColor':'none'}" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONS.heart}</svg></button>
@@ -427,7 +437,9 @@ function render(leads,total){const u=UI[lang],out=$('#results');
    const ss=el.querySelector('.pl-status');if(ss)ss.onchange=()=>savePipeline(el.dataset.id,{status:ss.value});
    const tg=el.querySelector('.pl-tags');if(tg)tg.onchange=()=>savePipeline(el.dataset.id,{tags:tg.value.split(',').map(s=>s.trim()).filter(Boolean)});
    const nt=el.querySelector('.pl-notes');if(nt)nt.onblur=()=>savePipeline(el.dataset.id,{notes:nt.value});
+   const cb=el.querySelector('.bulk-cb');if(cb)cb.onchange=()=>{cb.checked?selectedIds.add(el.dataset.id):selectedIds.delete(el.dataset.id);updateBulkBar();};
  });
+ updateBulkBar();
  if(tab==='search'&&lastLeads.length)$('#status').textContent=u.found(leads.length,lastLeads.length);
 }
 function emptyState(msg){return `<div class="col-span-full flex flex-col items-center justify-center text-center py-16 text-zinc-400">
@@ -475,7 +487,12 @@ function paintIgMode(){$('#igModeWrap').classList.toggle('hidden',sourceMode!=='
     b.className='igmbtn px-3 py-1.5 rounded-md text-xs font-medium '+(on?'bg-white dark:bg-zinc-800 shadow text-brand-600 dark:text-white':'text-zinc-500');});}
 $$('#igModeSeg .igmbtn').forEach(b=>b.onclick=()=>{igMode=b.dataset.m;paintIgMode();});
 $('#advBtn').onclick=()=>{$('#adv').classList.toggle('hidden');updateSrcHint();};
-$('#searchForm').onsubmit=e=>{e.preventDefault();runSearch('/api/find',{category:category.value,city:city.value,country:country.value,limit:+limit.value,lang,enrich:enrich.checked,source:sourceMode,ig_mode:igMode});};
+$('#allCities').onclick=()=>{$('#city').value='Київ, Львів, Одеса, Дніпро, Харків';};
+$('#searchForm').onsubmit=e=>{e.preventDefault();
+  const cities=city.value.split(',').map(s=>s.trim()).filter(Boolean);
+  const base={category:category.value,country:country.value,limit:+limit.value,lang,enrich:enrich.checked,source:sourceMode,ig_mode:igMode};
+  if(cities.length>1)runSearch('/api/find_multi',{...base,cities});
+  else runSearch('/api/find',{...base,city:city.value});};
 $('#runMap').onclick=()=>{const pt=picked||map.getCenter();   // fall back to map centre
   runSearch('/api/find_around',{category:category.value,lat:pt.lat,lon:pt.lng,radius_m:+radius.value,limit:+limit.value,lang,enrich:enrich.checked});};
 
@@ -492,7 +509,13 @@ function openOutreach(id){const u=UI[lang];dwLead=findLead(id);if(!dwLead)return
   ps.innerHTML=dms.length?dms.map((p,i)=>`<option value="${i}">${esc(p.name)} · ${esc(p.role||'')}</option>`).join(''):`<option value="0">${esc(u.contact)}</option>`;
   $('#drawer').classList.remove('hidden');document.body.style.overflow='hidden';
   $('#dwAnalysis').innerHTML='<span class="spin"></span>';$('#dwMsg').value='';$('#dwRecs').innerHTML='<span class="spin"></span>';
-  runAnalysis();runRecs();genMessage();}
+  $('#dwFit').classList.add('hidden');
+  runAnalysis();runRecs();genMessage();runQualify();}
+async function runQualify(){
+  const d=await (await fetch('/api/qualify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lead:dwLead,lang})})).json();
+  const f=$('#dwFit');if(d&&d.fit!=null){const col=d.fit>=70?'bg-emerald-500 text-white':d.fit>=40?'bg-amber-500 text-white':'bg-zinc-400 text-white';
+    f.className='shrink-0 px-2 py-0.5 rounded-md text-[10px] font-bold '+col;f.textContent='ICP '+d.fit+'%';f.title=d.reason||'';}
+  else f.classList.add('hidden');}
 async function runRecs(){
   const r=await fetch('/api/recommend',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lead:dwLead,lang})});
   const d=await r.json();const recs=d.recommendations||[];
@@ -517,6 +540,21 @@ async function genMessage(){$('#dwMsg').value='…';
   const d=await r.json();$('#dwMsg').value=d.message||'';}
 $('#dwGen').onclick=genMessage;
 $('#dwCopy').onclick=()=>{const u=UI[lang];navigator.clipboard.writeText($('#dwMsg').value);const b=$('#dwCopy').querySelector('span:last-child');const o=b.textContent;b.textContent=u.copied;setTimeout(()=>b.textContent=o,1500);};
+
+// ---- bulk actions ----
+function selectedLeads(){const pool=[...lastLeads,...savedLeads];return [...selectedIds].map(id=>pool.find(l=>l._id===id)).filter(Boolean);}
+function updateBulkBar(){const n=selectedIds.size;$('#bulkBar').classList.toggle('hidden',n===0);
+  $('#bulkCount').textContent=(lang==='en'?`${n} selected`:lang==='ru'?`${n} выбрано`:`${n} виділено`);}
+$('#bulkSave').onclick=async()=>{const leads=selectedLeads();if(!leads.length)return;
+  await fetch('/api/save_bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({leads})});
+  leads.forEach(l=>l._saved=true);selectedIds.clear();refreshSavedCount();renderCurrent();};
+$('#bulkExport').onclick=()=>{const leads=selectedLeads();if(!leads.length)return;
+  const head=['name','city','website','rating','size','score','tier','emails','phones','decision_makers'];
+  const rows=leads.map(l=>{const c=l.company||{},en=l.enrichment||{},s=l.score||{};
+    return [c.name,c.city,c.website,c.rating,c.size_band||(en.profile||{}).size_band,s.score,s.tier,(en.emails||[]).join(' '),(en.phones||[]).join(' '),(en.decision_makers||[]).map(p=>p.name).join(' ')].map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',');});
+  const csv=head.join(',')+'\n'+rows.join('\n');const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download='leadgen_selected.csv';a.click();};
+$('#bulkClear').onclick=()=>{selectedIds.clear();renderCurrent();};
 
 // ---- analytics / settings modal ----
 const STATUS_LABELS={new:{uk:'Новий',ru:'Новый',en:'New'},contacted:{uk:'Написав',ru:'Написал',en:'Contacted'},replied:{uk:'Відповів',ru:'Ответил',en:'Replied'},client:{uk:'Клієнт',ru:'Клиент',en:'Client'},rejected:{uk:'Відмова',ru:'Отказ',en:'Rejected'}};
