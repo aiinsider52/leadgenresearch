@@ -487,11 +487,16 @@ const darkTiles='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
 const lightTiles='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
 const map=L.map('map',{zoomControl:true,attributionControl:false}).setView([49.842,24.0316],12);
 tiles=L.tileLayer(document.documentElement.classList.contains('dark')?darkTiles:lightTiles,{maxZoom:19}).addTo(map);
-$('#radius').oninput=e=>{$('#radiusLabel').textContent=(e.target.value/1000).toFixed(1)+' km';if(circle)circle.setRadius(+e.target.value);};
-map.on('click',e=>{picked=e.latlng;
- if(marker)marker.setLatLng(e.latlng);else marker=L.marker(e.latlng).addTo(map);
- if(circle)circle.setLatLng(e.latlng).setRadius(+radius.value);else circle=L.circle(e.latlng,{radius:+radius.value,color:'#10b981',weight:1.5,fillColor:'#10b981',fillOpacity:.12}).addTo(map);
- $('#runMap').disabled=false;});
+// Always-visible radius circle marking the search area (centre by default).
+circle=L.circle(map.getCenter(),{radius:+radius.value,color:'#10b981',weight:1.5,fillColor:'#10b981',fillOpacity:.12}).addTo(map);
+function radiusLabel(){const km=(+radius.value/1000);$('#radiusLabel').textContent='R '+km.toFixed(1)+' · ⌀'+(km*2).toFixed(0)+' km';}
+function searchPoint(){return picked||map.getCenter();}
+$('#radius').oninput=()=>{radiusLabel();circle.setRadius(+radius.value);};
+// Circle follows the map centre while panning (until a point is pinned).
+map.on('move',()=>{if(!picked)circle.setLatLng(map.getCenter());});
+map.on('click',e=>{picked=e.latlng;circle.setLatLng(e.latlng);
+ if(marker)marker.setLatLng(e.latlng);else marker=L.marker(e.latlng).addTo(map);});
+radiusLabel();
 
 // ---- init ----
 (async function(){
