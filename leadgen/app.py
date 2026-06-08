@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from . import llm, service
 from .analyze.company import analyze
+from .catalog.ai_recommender import ai_recommend
 from .i18n import LANGS
 from .outreach.writer import write_message
 from .service import (
@@ -175,6 +176,21 @@ class AnalyzeRequest(BaseModel):
 def api_analyze(req: AnalyzeRequest):
     lang = req.lang if req.lang in LANGS else "uk"
     return JSONResponse(analyze(req.lead, lang))
+
+
+class RecommendRequest(BaseModel):
+    lead: dict
+    lang: str = "uk"
+
+
+@app.post("/api/recommend")
+def api_recommend(req: RecommendRequest):
+    lang = req.lang if req.lang in LANGS else "uk"
+    recs = ai_recommend(req.lead, lang)
+    if recs is None:  # no key/failure → fall back to the lead's deterministic ones
+        recs = [{"name": a["name"], "pitch": a["pitch"], "template": None, "ai": False}
+                for a in (req.lead.get("automations") or [])[:3]]
+    return JSONResponse({"recommendations": recs, "ai": bool(recs and recs[0].get("ai"))})
 
 
 @app.get("/api/ai_status")
