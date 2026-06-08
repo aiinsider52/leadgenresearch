@@ -23,14 +23,18 @@ from .i18n import LANGS
 from .outreach.writer import write_message
 from .service import (
     UA_MAJOR_CITIES,
+    add_schedule,
     find_leads,
     find_leads_around,
     find_leads_multi,
     get_icp,
     list_favorites,
+    list_schedules,
     load_leads,
     passes_filters,
     remove_favorite,
+    remove_schedule,
+    run_schedules,
     save_favorite,
     saved_ids,
     set_icp,
@@ -268,6 +272,30 @@ class SaveBulkRequest(BaseModel):
 def api_save_bulk(req: SaveBulkRequest):
     ids = [save_favorite(l) for l in req.leads]
     return JSONResponse({"saved": len(ids), "ids": ids})
+
+
+@app.get("/api/schedules")
+def api_list_schedules():
+    return JSONResponse(list_schedules())
+
+
+class ScheduleRequest(BaseModel):
+    search: dict
+
+
+@app.post("/api/schedules")
+def api_add_schedule(req: ScheduleRequest):
+    return JSONResponse(add_schedule(req.search))
+
+
+@app.delete("/api/schedules/{index}")
+def api_remove_schedule(index: int):
+    return JSONResponse(remove_schedule(index))
+
+
+@app.post("/api/run_schedules")
+def api_run_schedules():
+    return JSONResponse(run_schedules())
 
 
 @app.get("/api/ai_status")

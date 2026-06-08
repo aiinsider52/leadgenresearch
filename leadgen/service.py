@@ -382,6 +382,67 @@ def set_icp(text: str) -> None:
     ICP_FILE.write_text(text.strip(), encoding="utf-8")
 
 
+# ---- Scheduled searches (run via run_scheduled.py / cron) --------------------
+
+SCHEDULES_FILE = DATA_DIR / "schedules.json"
+
+
+def list_schedules() -> list[dict]:
+    if SCHEDULES_FILE.exists():
+        try:
+            return json.loads(SCHEDULES_FILE.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            pass
+    return []
+
+
+def _save_schedules(s: list[dict]) -> None:
+    SCHEDULES_FILE.write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def add_schedule(search: dict) -> list[dict]:
+    s = list_schedules()
+    search = {k: search.get(k) for k in ("category", "city", "cities", "country",
+                                         "limit", "lang", "enrich", "source", "ig_mode")}
+    s.append(search)
+    _save_schedules(s)
+    return s
+
+
+def remove_schedule(index: int) -> list[dict]:
+    s = list_schedules()
+    if 0 <= index < len(s):
+        s.pop(index)
+        _save_schedules(s)
+    return s
+
+
+def run_schedules(progress: Optional[Callable[[str], None]] = None) -> dict:
+    """Run every saved search; new leads are appended (and deduped on read).
+    Returns a summary. Intended to be called from cron."""
+    total = 0
+    for i, sc in enumerate(list_schedules()):
+        cat = sc.get("category") or ""
+        try:
+            if sc.get("cities"):
+                leads = find_leads_multi(cat, sc["cities"], country=sc.get("country", "Ukraine"),
+                                         limit=sc.get("limit", 20), lang=sc.get("lang", "uk"),
+                                         enrich=sc.get("enrich", True), source=sc.get("source", "osm"),
+                                         ig_mode=sc.get("ig_mode", "business"), progress=progress)
+            else:
+                leads = find_leads(cat, sc.get("city", ""), country=sc.get("country", "Ukraine"),
+                                   limit=sc.get("limit", 20), lang=sc.get("lang", "uk"),
+                                   enrich=sc.get("enrich", True), source=sc.get("source", "osm"),
+                                   ig_mode=sc.get("ig_mode", "business"), progress=progress)
+            total += len(leads)
+            if progress:
+                progress(f"schedule {i}: {len(leads)} leads")
+        except Exception as exc:
+            if progress:
+                progress(f"schedule {i} failed: {exc}")
+    return {"schedules": len(list_schedules()), "new_leads": total}
+
+
 if __name__ == "__main__":
     import sys
 

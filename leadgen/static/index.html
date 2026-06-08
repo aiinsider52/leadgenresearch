@@ -563,7 +563,7 @@ function bars(obj,max){const m=max||Math.max(1,...Object.values(obj));return Obj
     <div class="flex-1 h-2 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden"><div class="h-full bg-brand-500 rounded-full" style="width:${Math.round(v/m*100)}%"></div></div>
     <span class="w-8 text-right tabular-nums">${v}</span></div>`).join('');}
 async function openStats(){
-  const [s,u,icp]=await Promise.all([fetch('/api/stats').then(r=>r.json()),fetch('/api/usage').then(r=>r.json()),fetch('/api/icp').then(r=>r.json())]);
+  const [s,u,icp,sch]=await Promise.all([fetch('/api/stats').then(r=>r.json()),fetch('/api/usage').then(r=>r.json()),fetch('/api/icp').then(r=>r.json()),fetch('/api/schedules').then(r=>r.json())]);
   const funnel=Object.fromEntries(Object.entries(s.funnel).map(([k,v])=>[STATUS_LABELS[k]?.[lang]||k,v]));
   const budBar=(o,color)=>`<div class="h-2 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden"><div class="h-full ${color} rounded-full" style="width:${Math.min(100,Math.round(o.usd/o.cap*100))}%"></div></div>`;
   $('#statsBody').innerHTML=`
@@ -588,8 +588,23 @@ async function openStats(){
       <textarea id="icpInput" rows="3" class="w-full bg-white dark:bg-zinc-900/70 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm" placeholder="Опишіть ідеального клієнта…">${esc(icp.icp||'')}</textarea>
       <button id="icpSave" class="mt-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg px-4 py-2 text-sm font-medium">Зберегти ICP</button>
       <span id="icpMsg" class="ml-2 text-xs text-emerald-500"></span>
+    </div>
+    <div class="border-t border-black/5 dark:border-white/5 pt-4">
+      <div class="flex items-center justify-between mb-2">
+        <div class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Розклад · збережені пошуки</div>
+        <div class="flex gap-1.5"><button id="schAdd" class="text-xs bg-black/5 dark:bg-white/10 hover:bg-black/10 rounded-lg px-2.5 py-1">+ поточний</button>
+          <button id="schRun" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg px-2.5 py-1">▶ Запустити</button></div>
+      </div>
+      <div id="schList" class="space-y-1.5">${sch.length?sch.map((x,i)=>`<div class="flex items-center justify-between text-sm rounded-lg bg-black/[.03] dark:bg-white/[.04] px-2.5 py-1.5"><span>${esc(x.category||'')} · ${esc((x.cities||[x.city]).join(', '))} <span class="text-zinc-400">[${esc(x.source||'osm')}]</span></span><button data-i="${i}" class="schDel text-zinc-400 hover:text-rose-500">✕</button></div>`).join(''):'<span class="text-xs text-zinc-400">Поки порожньо. «+ поточний» додасть пошук із верхньої панелі.</span>'}</div>
+      <div class="text-[11px] text-zinc-400 mt-2">Авто-запуск: cron → <code>python run_scheduled.py</code> (напр. щоранку о 8:00).</div>
     </div>`;
   $('#icpSave').onclick=async()=>{await fetch('/api/icp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({icp:$('#icpInput').value})});$('#icpMsg').textContent='✓';setTimeout(()=>$('#icpMsg').textContent='',1500);};
+  $('#schAdd').onclick=async()=>{const cities=$('#city').value.split(',').map(x=>x.trim()).filter(Boolean);
+    const search={category:$('#category').value,country:$('#country').value,limit:+$('#limit').value,lang,enrich:$('#enrich').checked,source:sourceMode,ig_mode:igMode};
+    if(cities.length>1)search.cities=cities;else search.city=$('#city').value;
+    await fetch('/api/schedules',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({search})});openStats();};
+  $('#schRun').onclick=async()=>{$('#schRun').textContent='…';await fetch('/api/run_schedules',{method:'POST'});openStats();};
+  $$('.schDel').forEach(b=>b.onclick=async()=>{await fetch('/api/schedules/'+b.dataset.i,{method:'DELETE'});openStats();});
   $('#stats').classList.remove('hidden');document.body.style.overflow='hidden';
 }
 $('#statsBtn').onclick=openStats;
