@@ -194,7 +194,11 @@ def discover_instagram(
         "searchLimit": search_limit,
         "enhanceUserSearchWithFacebookPage": True,  # adds email/FB to top results
     }
+    from .. import usage
+    if not usage.allowed("apify"):
+        raise RuntimeError("Apify budget exceeded for this month — raise APIFY_BUDGET_USD to continue.")
     r = requests.post(RUN_SYNC, params={"token": token}, json=payload, timeout=timeout)
+    usage.record("apify")
     if r.status_code >= 400:
         raise RuntimeError(f"Apify IG run failed: HTTP {r.status_code} {r.text[:200]}")
     items = r.json()

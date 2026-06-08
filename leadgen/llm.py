@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import requests
 
+from . import usage
 from .config import get
 
 ENDPOINT = "https://api.openai.com/v1/chat/completions"
@@ -45,7 +46,7 @@ def complete(system: str, user: str, max_tokens: int = 700, temperature: float =
     """Single-shot completion. Tries the model chain; returns text or None
     (caller then uses its template fallback)."""
     global _working_model
-    if not available():
+    if not available() or not usage.allowed("openai"):
         return None
     for model in model_chain():
         try:
@@ -54,6 +55,7 @@ def complete(system: str, user: str, max_tokens: int = 700, temperature: float =
             continue
         if r.status_code == 200:
             _working_model = model
+            usage.record("openai")
             try:
                 return (r.json()["choices"][0]["message"]["content"] or "").strip() or None
             except Exception:

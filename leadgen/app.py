@@ -15,20 +15,26 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from . import llm, service
+from . import llm, service, usage
 from .analyze.company import analyze
+from .analyze.qualify import qualify
 from .catalog.ai_recommender import ai_recommend
 from .i18n import LANGS
 from .outreach.writer import write_message
 from .service import (
+    UA_MAJOR_CITIES,
     find_leads,
     find_leads_around,
+    find_leads_multi,
+    get_icp,
     list_favorites,
     load_leads,
     passes_filters,
     remove_favorite,
     save_favorite,
     saved_ids,
+    set_icp,
+    stats,
     update_favorite,
 )
 from .sources.osm import CATEGORY_TAGS
@@ -191,6 +197,77 @@ def api_recommend(req: RecommendRequest):
         recs = [{"name": a["name"], "pitch": a["pitch"], "template": None, "ai": False}
                 for a in (req.lead.get("automations") or [])[:3]]
     return JSONResponse({"recommendations": recs, "ai": bool(recs and recs[0].get("ai"))})
+
+
+class FindMultiRequest(BaseModel):
+    category: str
+    cities: List[str] = []
+    country: str = "Ukraine"
+    limit: int = 30
+    lang: str = "uk"
+    enrich: bool = True
+    source: str = "osm"
+    ig_mode: str = "business"
+    filters: Filters = Filters()
+
+
+@app.post("/api/find_multi")
+def api_find_multi(req: FindMultiRequest):
+    lang = req.lang if req.lang in LANGS else "uk"
+    cities = req.cities or UA_MAJOR_CITIES
+    try:
+        res = find_leads_multi(req.category, cities, country=req.country, limit=req.limit,
+                               lang=lang, enrich=req.enrich, source=req.source, ig_mode=req.ig_mode)
+    except Exception as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+    return JSONResponse(_apply_filters(_decorate([l.to_dict() for l in res]), req.filters))
+
+
+@app.get("/api/stats")
+def api_stats():
+    return JSONResponse(stats())
+
+
+@app.get("/api/usage")
+def api_usage():
+    return JSONResponse(usage.summary())
+
+
+@app.get("/api/icp")
+def api_get_icp():
+    return JSONResponse({"icp": get_icp()})
+
+
+class IcpRequest(BaseModel):
+    icp: str
+
+
+@app.post("/api/icp")
+def api_set_icp(req: IcpRequest):
+    set_icp(req.icp)
+    return JSONResponse({"saved": True})
+
+
+class QualifyRequest(BaseModel):
+    lead: dict
+    lang: str = "uk"
+
+
+@app.post("/api/qualify")
+def api_qualify(req: QualifyRequest):
+    lang = req.lang if req.lang in LANGS else "uk"
+    res = qualify(req.lead, lang)
+    return JSONResponse(res or {"fit": None, "ai": False})
+
+
+class SaveBulkRequest(BaseModel):
+    leads: List[dict]
+
+
+@app.post("/api/save_bulk")
+def api_save_bulk(req: SaveBulkRequest):
+    ids = [save_favorite(l) for l in req.leads]
+    return JSONResponse({"saved": len(ids), "ids": ids})
 
 
 @app.get("/api/ai_status")

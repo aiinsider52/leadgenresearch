@@ -83,6 +83,7 @@ tailwind.config = {
         <button data-tab="search" class="tabbtn px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5"><span class="ic" data-ic="search"></span><span data-i="tab_search">Пошук</span></button>
         <button data-tab="saved" class="tabbtn px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5"><span class="ic" data-ic="heart"></span><span data-i="tab_saved">Збережені</span><span id="savedCount" class="text-xs opacity-60"></span></button>
       </nav>
+      <button id="statsBtn" class="w-10 h-10 grid place-items-center rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800" title="Аналітика"><span class="ic" data-ic="chart"></span></button>
       <span id="aiPill" class="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium border"></span>
       <button id="exportBtn" class="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-sm font-medium" title="CSV"><span class="ic" data-ic="download"></span><span data-i="export">Експорт CSV</span></button>
       <select id="lang" class="bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 rounded-xl px-2.5 py-2 text-sm font-medium cursor-pointer">
@@ -222,6 +223,20 @@ tailwind.config = {
   </aside>
 </div>
 
+<!-- ░░ Analytics / settings modal ░░ -->
+<div id="stats" class="fixed inset-0 z-50 hidden">
+  <div id="statsBg" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+  <div class="absolute inset-0 grid place-items-center p-4">
+    <div class="w-full max-w-2xl max-h-[88vh] overflow-y-auto bg-zinc-50 dark:bg-zinc-950 border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl">
+      <header class="sticky top-0 glass border-b border-black/5 dark:border-white/5 px-5 py-4 flex items-center justify-between">
+        <div class="font-display font-bold flex items-center gap-2"><span class="ic text-brand-500" data-ic="chart"></span><span data-i="analytics_t">Аналітика</span></div>
+        <button id="statsClose" class="w-9 h-9 grid place-items-center rounded-xl border border-black/10 dark:border-white/10 hover:bg-zinc-100 dark:hover:bg-zinc-800"><span class="ic" data-ic="close"></span></button>
+      </header>
+      <div class="p-5 space-y-5" id="statsBody"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ---- SVG icon set (Lucide-style, stroke=currentColor) ----
 const ICONS={
@@ -246,6 +261,8 @@ const ICONS={
  instagram:'<rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/>',
  globe:'<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20"/>',
  map:'<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/>',
+ chart:'<path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="13" width="3" height="4"/>',
+ target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
  filter:'<path d="M22 3H2l8 9.5V20l4 2v-9.5L22 3Z"/>',
  sparkle:'<path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/>',
  moon:'<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/>',
@@ -475,6 +492,45 @@ async function genMessage(){$('#dwMsg').value='…';
   const d=await r.json();$('#dwMsg').value=d.message||'';}
 $('#dwGen').onclick=genMessage;
 $('#dwCopy').onclick=()=>{const u=UI[lang];navigator.clipboard.writeText($('#dwMsg').value);const b=$('#dwCopy').querySelector('span:last-child');const o=b.textContent;b.textContent=u.copied;setTimeout(()=>b.textContent=o,1500);};
+
+// ---- analytics / settings modal ----
+const STATUS_LABELS={new:{uk:'Новий',ru:'Новый',en:'New'},contacted:{uk:'Написав',ru:'Написал',en:'Contacted'},replied:{uk:'Відповів',ru:'Ответил',en:'Replied'},client:{uk:'Клієнт',ru:'Клиент',en:'Client'},rejected:{uk:'Відмова',ru:'Отказ',en:'Rejected'}};
+function bars(obj,max){const m=max||Math.max(1,...Object.values(obj));return Object.entries(obj).map(([k,v])=>`
+  <div class="flex items-center gap-2 text-sm"><span class="w-24 shrink-0 text-zinc-500 dark:text-zinc-400 truncate capitalize">${esc(k)}</span>
+    <div class="flex-1 h-2 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden"><div class="h-full bg-brand-500 rounded-full" style="width:${Math.round(v/m*100)}%"></div></div>
+    <span class="w-8 text-right tabular-nums">${v}</span></div>`).join('');}
+async function openStats(){
+  const [s,u,icp]=await Promise.all([fetch('/api/stats').then(r=>r.json()),fetch('/api/usage').then(r=>r.json()),fetch('/api/icp').then(r=>r.json())]);
+  const funnel=Object.fromEntries(Object.entries(s.funnel).map(([k,v])=>[STATUS_LABELS[k]?.[lang]||k,v]));
+  const budBar=(o,color)=>`<div class="h-2 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden"><div class="h-full ${color} rounded-full" style="width:${Math.min(100,Math.round(o.usd/o.cap*100))}%"></div></div>`;
+  $('#statsBody').innerHTML=`
+    <div class="grid grid-cols-3 gap-3">
+      ${[['Лідів',s.total_leads],['З email',s.with_email],['Збережено',s.saved]].map(([t,v])=>`<div class="glass rounded-xl p-3 text-center"><div class="font-display font-bold text-2xl">${v}</div><div class="text-xs text-zinc-500">${t}</div></div>`).join('')}
+    </div>
+    <div><div class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-2">Воронка</div>${bars(funnel)}</div>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div><div class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-2">За тиром</div>${bars(s.by_tier)}</div>
+      <div><div class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-2">Джерела</div>${bars(s.by_source)}</div>
+    </div>
+    <div><div class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-2">Топ міста</div>${bars(s.by_city)}</div>
+    <div class="border-t border-black/5 dark:border-white/5 pt-4">
+      <div class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-2">Бюджет (${esc(u.month)})</div>
+      <div class="space-y-2 text-sm">
+        <div><div class="flex justify-between mb-1"><span>Apify · ${u.apify.runs} прогонів</span><span class="tabular-nums">$${u.apify.usd} / $${u.apify.cap}</span></div>${budBar(u.apify,'bg-emerald-500')}</div>
+        <div><div class="flex justify-between mb-1"><span>OpenAI · ${u.openai.calls} викликів</span><span class="tabular-nums">$${u.openai.usd} / $${u.openai.cap}</span></div>${budBar(u.openai,'bg-violet-500')}</div>
+      </div>
+    </div>
+    <div class="border-t border-black/5 dark:border-white/5 pt-4">
+      <div class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-2">${svg('target','w-3.5 h-3.5 text-brand-500')}ICP — ідеальний клієнт</div>
+      <textarea id="icpInput" rows="3" class="w-full bg-white dark:bg-zinc-900/70 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm" placeholder="Опишіть ідеального клієнта…">${esc(icp.icp||'')}</textarea>
+      <button id="icpSave" class="mt-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg px-4 py-2 text-sm font-medium">Зберегти ICP</button>
+      <span id="icpMsg" class="ml-2 text-xs text-emerald-500"></span>
+    </div>`;
+  $('#icpSave').onclick=async()=>{await fetch('/api/icp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({icp:$('#icpInput').value})});$('#icpMsg').textContent='✓';setTimeout(()=>$('#icpMsg').textContent='',1500);};
+  $('#stats').classList.remove('hidden');document.body.style.overflow='hidden';
+}
+$('#statsBtn').onclick=openStats;
+$('#statsClose').onclick=$('#statsBg').onclick=()=>{$('#stats').classList.add('hidden');document.body.style.overflow='';};
 
 // ---- export + AI status ----
 $('#exportBtn').onclick=()=>window.open('/api/export.csv?scope='+(tab==='saved'?'saved':'recent'),'_blank');

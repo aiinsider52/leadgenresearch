@@ -263,11 +263,19 @@ def _write_saved(d: dict[str, dict]) -> None:
     SAVED_FILE.write_text(json.dumps(d, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+PIPELINE_STATUSES = ["new", "contacted", "replied", "client", "rejected"]
+
+
 def save_favorite(lead: dict) -> str:
-    """Like/save a prospect. Returns its id. Idempotent."""
+    """Like/save a prospect. Returns its id. Idempotent — keeps existing
+    pipeline fields (status/tags/notes) if the lead was already saved."""
     d = _read_saved()
     lid = _lead_id(lead)
-    lead = {**lead, "saved_id": lid}
+    existing = d.get(lid, {})
+    lead = {**lead, "saved_id": lid,
+            "status": existing.get("status", "new"),
+            "tags": existing.get("tags", []),
+            "notes": existing.get("notes", "")}
     d[lid] = lead
     _write_saved(d)
     return lid
@@ -300,6 +308,78 @@ def list_favorites() -> list[dict]:
 
 def saved_ids() -> list[str]:
     return list(_read_saved().keys())
+
+
+# ---- Multi-city search ------------------------------------------------------
+
+UA_MAJOR_CITIES = ["Київ", "Львів", "Одеса", "Дніпро", "Харків", "Запоріжжя"]
+
+
+def find_leads_multi(category_label: str, cities: list[str], country: str = "Ukraine",
+                     limit: int = 30, lang: str = "uk", enrich: bool = True,
+                     source: str = "osm", ig_mode: str = "business",
+                     progress: Optional[Callable[[str], None]] = None) -> list[Lead]:
+    """Run the pipeline across several cities and merge, deduped by company.
+    Splits the limit across cities so the total stays close to `limit`."""
+    cities = [c.strip() for c in cities if c.strip()]
+    per = max(limit // max(len(cities), 1), 3)
+    seen: set[str] = set()
+    out: list[Lead] = []
+    for city in cities:
+        if progress:
+            progress(f"city:{city}")
+        try:
+            leads = find_leads(category_label, city, country=country, limit=per, lang=lang,
+                               enrich=enrich, source=source, ig_mode=ig_mode, progress=progress)
+        except Exception:
+            continue
+        for l in leads:
+            lid = _lead_id(l.to_dict())
+            if lid in seen:
+                continue
+            seen.add(lid)
+            out.append(l)
+    out.sort(key=lambda l: l.score.get("score", 0), reverse=True)
+    return out
+
+
+# ---- Analytics --------------------------------------------------------------
+
+def stats() -> dict:
+    """Counters for the analytics view: pipeline funnel (saved) + breakdowns
+    (all leads) by tier / source / city."""
+    from collections import Counter
+    saved = list_favorites()
+    allleads = load_leads(1000)
+
+    funnel = Counter(s.get("status", "new") for s in saved)
+    by_tier = Counter((l.get("score", {}) or {}).get("tier", "cold") for l in allleads)
+    by_source = Counter((l.get("company", {}) or {}).get("source", "?") for l in allleads)
+    by_city = Counter((l.get("company", {}) or {}).get("city", "?") for l in allleads)
+    with_email = sum(1 for l in allleads if (l.get("enrichment", {}) or {}).get("emails"))
+
+    return {
+        "total_leads": len(allleads),
+        "saved": len(saved),
+        "with_email": with_email,
+        "funnel": {s: funnel.get(s, 0) for s in PIPELINE_STATUSES},
+        "by_tier": dict(by_tier),
+        "by_source": dict(by_source),
+        "by_city": dict(by_city.most_common(8)),
+    }
+
+
+# ---- ICP (ideal customer profile) -------------------------------------------
+
+ICP_FILE = DATA_DIR / "icp.txt"
+
+
+def get_icp() -> str:
+    return ICP_FILE.read_text(encoding="utf-8").strip() if ICP_FILE.exists() else ""
+
+
+def set_icp(text: str) -> None:
+    ICP_FILE.write_text(text.strip(), encoding="utf-8")
 
 
 if __name__ == "__main__":
