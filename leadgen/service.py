@@ -159,13 +159,17 @@ def find_leads(
             c.category = category
     elif source == "gmaps":
         # Live Google Maps via headless browser — works worldwide incl. Ukraine.
-        # Search with the user's RAW phrase ("marketing agency"), not the slug.
-        # Deep-clicking is slow (~2s/result), so cap when also enriching to
-        # avoid multi-minute requests that time out the browser.
-        gmaps_limit = min(limit, 20) if enrich else min(limit, 30)
+        # Big limits → grid-search (tile the city, breaks Google's ~120 cap);
+        # small limits → fast single search. Search the RAW phrase, not the slug.
         try:
-            from .sources.gmaps_playwright import discover_gmaps_pw
-            companies = discover_gmaps_pw(category_label, city, country=country, limit=gmaps_limit)
+            if limit >= 40:
+                from .sources.gmaps_playwright import discover_gmaps_grid
+                companies = discover_gmaps_grid(category_label, city, country=country,
+                                                limit=limit, grid=3)
+            else:
+                from .sources.gmaps_playwright import discover_gmaps_pw
+                companies = discover_gmaps_pw(category_label, city, country=country,
+                                              limit=min(limit, 30))
             for c in companies:        # keep slug for matching/templates
                 c.category = category
         except Exception as exc:
