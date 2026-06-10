@@ -172,7 +172,10 @@ def find_leads(
             if progress:
                 progress(f"gmaps_failed:{exc}")
     if not companies and source not in ("instagram", "jobs"):  # default / fallback
-        companies = discover(category, city, country=country, limit=limit,
+        # OSM is free + many places have no site (enrichment skips them fast),
+        # so fetch a generous pool to fill the database.
+        osm_limit = max(limit, 60)
+        companies = discover(category, city, country=country, limit=osm_limit,
                              require_website=require_website)
     return _process(companies, lang, enrich, progress, category=category)
 

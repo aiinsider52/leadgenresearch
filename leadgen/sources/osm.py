@@ -23,21 +23,26 @@ HEADERS = {"User-Agent": "leadgen/0.1 (+https://github.com/leadgen)"}
 # Business category -> OSM tag filters. Keys are language-neutral slugs;
 # the i18n layer maps localized labels to these.
 CATEGORY_TAGS: dict[str, list[str]] = {
-    "restaurant": ['amenity~"restaurant|cafe|fast_food|bar"'],
-    "dental": ['amenity="dentist"', 'healthcare="dentist"'],
-    "clinic": ['amenity~"clinic|doctors|hospital"', 'healthcare~"clinic|doctor"'],
-    "beauty": ['shop~"beauty|hairdresser|massage"', 'leisure="spa"'],
-    "fitness": ['leisure~"fitness_centre|sports_centre"'],
-    "law": ['office="lawyer"'],
-    "real_estate": ['office="estate_agent"'],
-    "auto": ['shop~"car|car_repair|tyres"'],
-    "hotel": ['tourism~"hotel|guest_house|hostel"'],
-    "retail": ['shop~"clothes|shoes|jewelry|gift|furniture"'],
-    # Dropped office=company (a catch-all that returned every company office,
-    # not actual agencies). OSM is sparse for agencies — prefer the gmaps source.
-    "agency": ['office~"advertising_agency|marketing|consulting|it"'],
-    "construction": ['craft~"builder|carpenter|electrician|plumber"', 'office="construction_company"'],
-    "education": ['amenity~"school|language_school|college"', 'office="educational_institution"'],
+    "restaurant": ['amenity~"restaurant|cafe|fast_food|bar|pub|biergarten|food_court|ice_cream"',
+                   'shop~"bakery|confectionery|coffee|pastry"'],
+    "dental": ['amenity="dentist"', 'healthcare="dentist"', 'shop="dental"'],
+    "clinic": ['amenity~"clinic|doctors|hospital"', 'healthcare~"clinic|doctor|centre|laboratory|physiotherapist"',
+               'shop="medical_supply"'],
+    "beauty": ['shop~"beauty|hairdresser|massage|cosmetics|nails|tattoo|perfumery"',
+               'leisure="spa"', 'amenity="beauty"'],
+    "fitness": ['leisure~"fitness_centre|sports_centre|dance|swimming_pool"', 'amenity="gym"', 'shop="sports"'],
+    "law": ['office~"lawyer|notary|tax_advisor"'],
+    "real_estate": ['office~"estate_agent|property_management"'],
+    "auto": ['shop~"car|car_repair|tyres|car_parts|motorcycle"', 'amenity~"car_wash|fuel|car_rental"'],
+    "hotel": ['tourism~"hotel|guest_house|hostel|motel|apartment|chalet"'],
+    "retail": ['shop~"clothes|shoes|jewelry|gift|furniture|electronics|mobile_phone|computer|"'
+               '"books|toys|florist|optician|bag|watches|interior_decoration"'],
+    # OSM is sparse for agencies — prefer gmaps/instagram; kept tight to avoid noise.
+    "agency": ['office~"advertising_agency|marketing|consulting|it|telecommunication|research"'],
+    "construction": ['craft~"builder|carpenter|electrician|plumber|painter|roofer|hvac|metal_construction|tiler"',
+                     'office~"construction_company|architect"', 'shop="doityourself"'],
+    "education": ['amenity~"school|language_school|college|university|kindergarten|music_school|driving_school"',
+                  'office="educational_institution"'],
 }
 
 
