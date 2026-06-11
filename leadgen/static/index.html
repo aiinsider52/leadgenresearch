@@ -587,7 +587,7 @@ function openLeadDetail(id){
   const tierC={hot:'bg-rose-500',warm:'bg-amber-500',cold:'bg-zinc-400 dark:bg-zinc-600'}[s.tier]||'bg-zinc-400';
   $('#lmHead').innerHTML=`${s.score!=null?`<div class="shrink-0 w-12 h-12 rounded-xl ${tierC} text-white grid place-items-center font-display font-bold">${s.score}</div>`:''}
     <div class="min-w-0"><div class="font-display font-bold truncate">${esc(c.name||'')}</div>
-    <div class="text-xs text-zinc-500 flex items-center gap-1">${svg('pin','w-3 h-3')}<span class="truncate">${esc(c.address||c.city||'')}</span><span class="px-1.5 rounded bg-black/5 dark:bg-white/10 capitalize ml-1">${esc(c.source||'')}</span></div></div>`;
+    <div class="text-xs text-zinc-500 flex items-center gap-1">${svg('pin','w-3 h-3')}<span class="truncate">${esc(c.address||c.city||'')}</span><span class="px-1.5 rounded bg-black/5 dark:bg-white/10 ml-1">${esc((c.sources&&c.sources.length?c.sources.join(' + '):c.source)||'')}</span></div></div>`;
 
   // Company facts
   const emp=c.employees||p.employees, band=p.size_band||c.size_band;

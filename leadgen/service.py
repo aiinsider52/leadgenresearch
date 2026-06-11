@@ -221,7 +221,8 @@ def load_leads(limit: int = 200) -> list[dict]:
             line = line.strip()
             if line:
                 lead = json.loads(line)
-                by_id[_lead_id(lead)] = lead   # dedupe: keep latest per company
+                lid = _lead_id(lead)
+                by_id[lid] = _merge_leads(by_id[lid], lead) if lid in by_id else lead
     return list(by_id.values())[-limit:]
 
 
@@ -258,10 +259,75 @@ def passes_filters(
 
 # ---- Saved / liked prospects -------------------------------------------------
 
+import re as _re
+
+# Social/link-shortener hosts that aren't a company's own domain — don't dedupe on these.
+_NON_DOMAINS = {"instagram.com", "t.me", "telegram.me", "facebook.com", "fb.com",
+                "linktr.ee", "linkedin.com", "youtube.com", "tiktok.com", "expz.link"}
+
+
+def _domain(url) -> Optional[str]:
+    if not url:
+        return None
+    host = _re.sub(r"^https?://", "", str(url).lower()).split("/")[0].split("?")[0]
+    host = host[4:] if host.startswith("www.") else host
+    return host or None
+
+
 def _lead_id(lead: dict) -> str:
-    """Stable id for dedupe: OSM id, else website, else name+city."""
+    """Cross-source dedupe key: company domain (so OSM/IG/Jobs/Maps merge),
+    else OSM id, else normalized name+city."""
     c = lead.get("company", {})
-    return c.get("osm_id") or c.get("website") or f"{c.get('name')}|{c.get('city')}"
+    d = _domain(c.get("website"))
+    if d and d not in _NON_DOMAINS:
+        return "d:" + d
+    if c.get("osm_id"):
+        return c["osm_id"]
+    return f"{(c.get('name') or '').strip().lower()}|{(c.get('city') or '').strip().lower()}"
+
+
+def _merge_leads(a: dict, b: dict) -> dict:
+    """Merge two records of the same company (from different sources) into one
+    richer lead: union contacts/socials/decision-makers, combine sources, keep
+    the best of everything, recompute the score."""
+    ca, cb = a.get("company", {}) or {}, b.get("company", {}) or {}
+    comp = dict(ca)
+    for k, v in cb.items():
+        if v and not comp.get(k):
+            comp[k] = v
+    srcs = set(ca.get("sources", []) or []) | set(cb.get("sources", []) or [])
+    for x in (ca.get("source"), cb.get("source")):
+        if x:
+            srcs.add(x)
+    comp["sources"] = sorted(srcs)
+
+    ea, eb = a.get("enrichment", {}) or {}, b.get("enrichment", {}) or {}
+    en = dict(ea)
+    for k in ("emails", "phones", "telegram", "linkedin_profiles", "pages_crawled"):
+        en[k] = list(dict.fromkeys((ea.get(k) or []) + (eb.get(k) or [])))
+    en["socials"] = {**(eb.get("socials") or {}), **(ea.get("socials") or {})}
+    for key in ("decision_makers", "staff"):  # lists of {name,...} → dedupe by name
+        seen, merged = set(), []
+        for p in (ea.get(key) or []) + (eb.get(key) or []):
+            n = (p.get("name") or "").lower()
+            if n and n not in seen:
+                seen.add(n)
+                merged.append(p)
+        en[key] = merged
+    en["signals"] = {**(ea.get("signals") or {}), **(eb.get("signals") or {})}
+    prof = dict(ea.get("profile") or {})
+    for k, v in (eb.get("profile") or {}).items():
+        if v and not prof.get(k):
+            prof[k] = v
+    en["profile"] = prof
+
+    out = dict(a)
+    out["company"] = comp
+    out["enrichment"] = en
+    out["automations"] = a.get("automations") or b.get("automations") or []
+    out["templates"] = a.get("templates") or b.get("templates") or []
+    out["score"] = score_lead(comp, en)  # richer data → fresher score
+    return out
 
 
 def _read_saved() -> dict[str, dict]:
