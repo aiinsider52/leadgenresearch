@@ -539,22 +539,19 @@ def remove_schedule(index: int) -> list[dict]:
 
 
 def run_schedules(progress: Optional[Callable[[str], None]] = None) -> dict:
-    """Run every saved search; new leads are appended (and deduped on read).
-    Returns a summary. Intended to be called from cron."""
+    """Run every saved search with full fan-out (niche expansion + multi-city)
+    for maximum nightly volume. New leads are appended (deduped + merged on read).
+    Intended for cron (run_scheduled.py)."""
     total = 0
     for i, sc in enumerate(list_schedules()):
         cat = sc.get("category") or ""
         try:
-            if sc.get("cities"):
-                leads = find_leads_multi(cat, sc["cities"], country=sc.get("country", "Ukraine"),
-                                         limit=sc.get("limit", 20), lang=sc.get("lang", "uk"),
-                                         enrich=sc.get("enrich", True), source=sc.get("source", "osm"),
-                                         ig_mode=sc.get("ig_mode", "business"), progress=progress)
-            else:
-                leads = find_leads(cat, sc.get("city", ""), country=sc.get("country", "Ukraine"),
-                                   limit=sc.get("limit", 20), lang=sc.get("lang", "uk"),
-                                   enrich=sc.get("enrich", True), source=sc.get("source", "osm"),
-                                   ig_mode=sc.get("ig_mode", "business"), progress=progress)
+            leads = find_leads_expanded(
+                cat, sc.get("city", ""), country=sc.get("country", "Ukraine"),
+                limit=sc.get("limit", 40), lang=sc.get("lang", "uk"),
+                enrich=sc.get("enrich", True), source=sc.get("source", "osm"),
+                ig_mode=sc.get("ig_mode", "business"),
+                cities=sc.get("cities") or None, progress=progress)
             total += len(leads)
             if progress:
                 progress(f"schedule {i}: {len(leads)} leads")
