@@ -143,7 +143,7 @@ tailwind.config = {
       </div>
       <span id="srcHint" class="text-xs text-zinc-400 ml-auto self-center"></span>
     </div>
-    <select id="source" class="hidden"><option value="osm">osm</option><option value="gmaps">gmaps</option><option value="instagram">instagram</option><option value="jobs">jobs</option></select>
+    <select id="source" class="hidden"><option value="osm">osm</option><option value="gmaps">gmaps</option><option value="instagram">instagram</option><option value="jobs">jobs</option><option value="dou">dou</option></select>
   </div>
 
   <div class="grid lg:grid-cols-[300px_1fr] gap-5">
@@ -507,6 +507,7 @@ const SOURCES=[
   {v:'gmaps',ic:'pin',label:'Maps',hint:{uk:'рейтинги, відгуки, сайти',ru:'рейтинги, отзывы, сайты',en:'ratings, reviews, sites'}},
   {v:'instagram',ic:'instagram',label:'IG',hint:{uk:'засновники + email (Apify)',ru:'основатели + email (Apify)',en:'founders + email (Apify)'}},
   {v:'jobs',ic:'briefcase',label:'Jobs',hint:{uk:'сигнали найму · вакансія + контакт (LinkedIn)',ru:'сигналы найма · вакансия + контакт',en:'hiring signals · job + contact'}},
+  {v:'dou',ic:'briefcase',label:'DOU',hint:{uk:'укр. вакансії DOU.ua · компанія + роль',ru:'укр. вакансии DOU.ua',en:'UA jobs DOU.ua'}},
 ];
 let sourceMode=localStorage.getItem('lg_src')||'osm';
 function paintSources(){const seg=$('#sourceSeg');seg.innerHTML=SOURCES.map(s=>{

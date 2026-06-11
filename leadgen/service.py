@@ -152,6 +152,12 @@ def find_leads(
         companies = discover_jobs(category_label, city, country=country, limit=limit)
         for c in companies:
             c.category = category
+    elif source == "dou":
+        # Ukrainian hiring signals from DOU.ua (company + role).
+        from .sources.dou import discover_dou
+        companies = discover_dou(category_label, city, country=country, limit=max(limit, 25))
+        for c in companies:
+            c.category = category
     elif source == "instagram":
         # IG-native niches: founders/personal brands + emails via Apify actor.
         from .sources.instagram import discover_instagram
@@ -176,7 +182,7 @@ def find_leads(
         except Exception as exc:
             if progress:
                 progress(f"gmaps_failed:{exc}")
-    if not companies and source not in ("instagram", "jobs"):  # default / fallback
+    if not companies and source not in ("instagram", "jobs", "dou"):  # default / fallback
         # OSM is free + many places have no site (enrichment skips them fast),
         # so fetch a generous pool to fill the database.
         osm_limit = max(limit, 60)
