@@ -26,6 +26,7 @@ from .service import (
     add_schedule,
     find_leads,
     find_leads_around,
+    find_leads_expanded,
     find_leads_multi,
     get_icp,
     list_favorites,
@@ -222,6 +223,31 @@ def api_find_multi(req: FindMultiRequest):
     try:
         res = find_leads_multi(req.category, cities, country=req.country, limit=req.limit,
                                lang=lang, enrich=req.enrich, source=req.source, ig_mode=req.ig_mode)
+    except Exception as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+    return JSONResponse(_apply_filters(_decorate([l.to_dict() for l in res]), req.filters))
+
+
+class FindExpandedRequest(BaseModel):
+    category: str
+    city: str = ""
+    cities: List[str] = []
+    country: str = "Ukraine"
+    limit: int = 40
+    lang: str = "uk"
+    enrich: bool = True
+    source: str = "osm"
+    ig_mode: str = "business"
+    filters: Filters = Filters()
+
+
+@app.post("/api/find_expanded")
+def api_find_expanded(req: FindExpandedRequest):
+    lang = req.lang if req.lang in LANGS else "uk"
+    try:
+        res = find_leads_expanded(req.category, req.city, country=req.country, limit=req.limit,
+                                  lang=lang, enrich=req.enrich, source=req.source,
+                                  ig_mode=req.ig_mode, cities=(req.cities or None))
     except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
     return JSONResponse(_apply_filters(_decorate([l.to_dict() for l in res]), req.filters))

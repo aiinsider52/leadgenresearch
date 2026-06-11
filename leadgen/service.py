@@ -11,6 +11,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Callable, Optional
 
+from .analyze.niche import expand_niche
 from .analyze.scoring import score_lead
 from .catalog.match import Match, match_company
 from .catalog.n8n_templates import recommend_templates
@@ -344,6 +345,41 @@ def find_leads_multi(category_label: str, cities: list[str], country: str = "Ukr
         try:
             leads = find_leads(category_label, city, country=country, limit=per, lang=lang,
                                enrich=enrich, source=source, ig_mode=ig_mode, progress=progress)
+        except Exception:
+            continue
+        for l in leads:
+            lid = _lead_id(l.to_dict())
+            if lid in seen:
+                continue
+            seen.add(lid)
+            out.append(l)
+    out.sort(key=lambda l: l.score.get("score", 0), reverse=True)
+    return out
+
+
+# ---- AI niche fan-out -------------------------------------------------------
+
+def find_leads_expanded(category_label: str, city: str = "", country: str = "Ukraine",
+                        limit: int = 40, lang: str = "uk", enrich: bool = True,
+                        source: str = "osm", ig_mode: str = "business",
+                        cities: Optional[list[str]] = None,
+                        progress: Optional[Callable[[str], None]] = None) -> list[Lead]:
+    """Expand the niche into related terms and search each, merged + deduped —
+    one query sweeps the whole niche for many more leads."""
+    terms = expand_niche(category_label, lang)
+    per = max(limit // max(len(terms), 1), 5)
+    seen: set[str] = set()
+    out: list[Lead] = []
+    for term in terms:
+        if progress:
+            progress(f"niche:{term}")
+        try:
+            if cities and len(cities) > 1:
+                leads = find_leads_multi(term, cities, country=country, limit=per, lang=lang,
+                                         enrich=enrich, source=source, ig_mode=ig_mode)
+            else:
+                leads = find_leads(term, city, country=country, limit=per, lang=lang,
+                                   enrich=enrich, source=source, ig_mode=ig_mode)
         except Exception:
             continue
         for l in leads:

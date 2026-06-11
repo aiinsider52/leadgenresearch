@@ -124,6 +124,11 @@ tailwind.config = {
       <div><label class="block text-[11px] mb-1 text-zinc-500 dark:text-zinc-400" data-i="limit">Кількість</label>
         <input id="limit" type="number" min="1" max="80" class="w-24 bg-white dark:bg-zinc-900/70 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-sm" value="25"></div>
       <button type="button" id="allCities" class="px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium self-end" title="Пошук по кількох містах">🇺🇦 топ-міста</button>
+      <label class="flex items-center gap-2.5 text-sm cursor-pointer select-none py-2" title="GPT розширює нішу у 10-15 запитів">
+        <input type="checkbox" id="expandNiche" class="peer sr-only">
+        <span class="w-9 h-5 rounded-full bg-zinc-300 dark:bg-zinc-700 peer-checked:bg-violet-500 relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition peer-checked:after:translate-x-4"></span>
+        <span class="text-zinc-600 dark:text-zinc-300">🧠 AI веер ніш</span>
+      </label>
       <label class="flex items-center gap-2.5 text-sm cursor-pointer select-none py-2">
         <input type="checkbox" id="enrich" checked class="peer sr-only">
         <span class="w-9 h-5 rounded-full bg-zinc-300 dark:bg-zinc-700 peer-checked:bg-brand-500 relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition peer-checked:after:translate-x-4"></span>
@@ -522,7 +527,8 @@ $('#allCities').onclick=()=>{$('#city').value='Київ, Львів, Одеса,
 $('#searchForm').onsubmit=e=>{e.preventDefault();
   const cities=city.value.split(',').map(s=>s.trim()).filter(Boolean);
   const base={category:category.value,country:country.value,limit:+limit.value,lang,enrich:enrich.checked,source:sourceMode,ig_mode:igMode};
-  if(cities.length>1)runSearch('/api/find_multi',{...base,cities});
+  if($('#expandNiche').checked)runSearch('/api/find_expanded',{...base,city:cities.length>1?'':city.value,cities:cities.length>1?cities:[]});
+  else if(cities.length>1)runSearch('/api/find_multi',{...base,cities});
   else runSearch('/api/find',{...base,city:city.value});};
 $('#runMap').onclick=()=>{const pt=picked||map.getCenter();   // fall back to map centre
   runSearch('/api/find_around',{category:category.value,lat:pt.lat,lon:pt.lng,radius_m:+radius.value,limit:+limit.value,lang,enrich:enrich.checked});};
