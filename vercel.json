@@ -4,7 +4,8 @@
   "buildCommand": "bash scripts/vercel_build.sh",
   "functions": {
     "leadgen/app.py": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "includeFiles": "leadgen/static/**"
     }
   }
 }

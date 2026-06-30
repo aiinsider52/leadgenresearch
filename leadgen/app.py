@@ -750,7 +750,7 @@ def api_health():
     return JSONResponse({"ok": True, "vercel": bool(os.environ.get("VERCEL"))})
 
 
-# Vercel serves /static/** from public/static/ (see scripts/vercel_build.sh).
-# StaticFiles mount breaks on serverless — skip when VERCEL=1.
-if not os.environ.get("VERCEL"):
+# Static assets live in leadgen/static/ next to this module — serve on Vercel too
+# (CDN via public/static/ is optional; the package bundle is the reliable source).
+if STATIC_DIR.is_dir():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
