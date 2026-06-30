@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from typing import Callable, Optional
 
 from .config import data_dir
+from . import kv
 from . import service
 from .agent import memory
 from .cron_util import cron_is_due
@@ -26,16 +27,12 @@ CRON_PRESETS = {
 
 
 def _read_campaigns() -> dict:
-    if CAMPAIGNS_FILE.exists():
-        try:
-            return json.loads(CAMPAIGNS_FILE.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            pass
-    return {"campaigns": {}}
+    data = kv.load_json("campaigns", CAMPAIGNS_FILE, {"campaigns": {}})
+    return data if isinstance(data, dict) else {"campaigns": {}}
 
 
 def _write_campaigns(data: dict) -> None:
-    CAMPAIGNS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    kv.save_json("campaigns", CAMPAIGNS_FILE, data)
 
 
 def create_campaign(
@@ -126,8 +123,12 @@ def delete_campaign(campaign_id: str) -> bool:
 def _record_run(campaign_id: str, result: dict) -> None:
     row = {"campaign_id": campaign_id, "ts": datetime.now(timezone.utc).isoformat(), **result}
     with _LOCK:
-        with RUNS_FILE.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+        kv.append_jsonl("campaign_runs", RUNS_FILE, row)
+
+
+def recent_runs(limit: int = 20) -> list[dict]:
+    rows = kv.read_jsonl("campaign_runs", RUNS_FILE)
+    return rows[-limit:][::-1]
 
 
 def _discover_for_campaign(camp: dict, progress: Optional[Callable[[str], None]] = None) -> list:
@@ -232,15 +233,3 @@ def run_due_campaigns(progress: Optional[Callable[[str], None]] = None) -> list[
             continue
         results.append(run_campaign(camp["id"], progress=progress))
     return results
-
-
-def recent_runs(limit: int = 20) -> list[dict]:
-    if not RUNS_FILE.exists():
-        return []
-    rows = []
-    for line in RUNS_FILE.read_text(encoding="utf-8").splitlines()[-limit:]:
-        try:
-            rows.append(json.loads(line))
-        except json.JSONDecodeError:
-            pass
-    return rows[::-1]

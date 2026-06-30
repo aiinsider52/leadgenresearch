@@ -108,11 +108,13 @@
     if (!body) return;
     body.innerHTML = '<div class="text-muted" style="padding:24px"><span class="spin"></span> Loading…</div>';
     try {
-      const [u, storage, db, jobs] = await Promise.all([
+      const [u, storage, db, jobs, queue, signals] = await Promise.all([
         fetch('/api/usage').then(r => r.json()),
         fetch('/api/storage/status').then(r => r.json()).catch(() => ({})),
         fetch('/api/db/status').then(r => r.json()).catch(() => ({})),
         fetch('/api/jobs').then(r => r.json()).catch(() => ({ jobs: [] })),
+        fetch('/api/outreach/queue?limit=8').then(r => r.json()).catch(() => []),
+        fetch('/api/signals/recent?limit=6').then(r => r.json()).catch(() => []),
       ]);
       const bud = u.budget || {};
       global.budgetState = bud;
@@ -160,7 +162,35 @@
         <div class="provider-card">
           <div class="provider-head"><span class="provider-name">Jobs</span></div>
           <div class="provider-usage">${running} running · ${jobList.filter(j => j.status === 'done').length} completed (recent)</div>
+        </div>
+        <div class="provider-card" style="margin-top:12px">
+          <div class="provider-head"><span class="provider-name">Outreach queue</span>
+            <button type="button" id="infraProcessQueue" class="btn btn-ghost" style="padding:4px 10px;font-size:11px">Process</button></div>
+          <div class="provider-usage">${(queue || []).filter(q => q.status === 'pending').length} pending · ${(queue || []).filter(q => q.status === 'sent').length} sent</div>
+          <div style="margin-top:8px;font-size:12px;color:var(--text-secondary)">${(queue || []).slice(0, 5).map(q =>
+            `<div style="padding:4px 0;border-bottom:1px solid var(--border)">${q.status} · ${q.lead_id || ''} ${q.error ? '⚠' : ''}</div>`).join('') || '—'}</div>
+        </div>
+        <div class="provider-card">
+          <div class="provider-head"><span class="provider-name">Signals</span>
+            <button type="button" id="infraPollSignals" class="btn btn-ghost" style="padding:4px 10px;font-size:11px">Poll</button></div>
+          <div style="margin-top:8px;font-size:12px;color:var(--text-secondary)">${(signals || []).slice(0, 5).map(s =>
+            `<div style="padding:4px 0;border-bottom:1px solid var(--border)">${(s.title || s.signal || '').slice(0, 60)}</div>`).join('') || 'No recent signals'}</div>
         </div>`;
+      $('#infraProcessQueue')?.addEventListener('click', async () => {
+        try {
+          const r = await fetch('/api/outreach/process', { method: 'POST', headers: typeof authHeaders === 'function' ? authHeaders() : {} });
+          const d = await r.json();
+          showToast(r.ok ? `Sent ${d.sent || 0}` : (d.detail || 'Failed'), r.ok ? '' : 'error');
+          renderInfrastructurePage();
+        } catch (e) { showToast(e.message, 'error'); }
+      });
+      $('#infraPollSignals')?.addEventListener('click', async () => {
+        try {
+          const d = await fetch('/api/signals/poll', { method: 'POST', headers: typeof authHeaders === 'function' ? authHeaders() : {} }).then(r => r.json());
+          showToast(`Signals: ${d.hits ?? 0} hits`);
+          renderInfrastructurePage();
+        } catch (e) { showToast(e.message, 'error'); }
+      });
       const dot = $('#infraHealthDot');
       if (dot) {
         dot.className = 'status-dot ' + (overall >= 80 ? 'healthy' : overall >= 50 ? 'degraded' : 'exhausted');
@@ -273,7 +303,38 @@
     if (typeof global.openStats === 'function') {
       await global.openStats();
       const statsHtml = $('#statsBody')?.innerHTML || '';
-      body.innerHTML = `<div class="analytics-dashboard page-panel">${statsHtml}</div>`;
+      const [playbook, intentLeads, stats] = await Promise.all([
+        fetch('/api/playbook').then(r => r.json()).catch(() => ({ steps: [] })),
+        fetch('/api/intent/leads?limit=12').then(r => r.json()).catch(() => []),
+        fetch('/api/stats').then(r => r.json()).catch(() => ({})),
+      ]);
+      const roi = await fetch('/api/playbook/roi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leads: stats.total_leads || 100,
+          conversion_pct: 2.5,
+          deal_usd: 1500,
+          hourly_cost: 35,
+        }),
+      }).then(r => r.json()).catch(() => ({}));
+      const steps = (playbook.steps || []).map(s =>
+        `<div class="provider-card" style="margin-bottom:8px"><div class="provider-head"><span class="provider-name">${s.title}</span><span class="text-muted" style="font-size:11px">${s.kpi || ''}</span></div><div class="provider-usage">${s.description || ''}</div></div>`
+      ).join('');
+      const intentHtml = (intentLeads || []).slice(0, 8).map(l => {
+        const c = l.company || {};
+        return `<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px"><b>${global.esc ? global.esc(c.name) : c.name}</b> · ${global.esc ? global.esc(c.city || '') : (c.city || '')}</div>`;
+      }).join('') || '<span class="text-muted">—</span>';
+      body.innerHTML = `<div class="analytics-dashboard page-panel">${statsHtml}
+        <div class="chart-panel" style="margin-top:20px"><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-tertiary);margin-bottom:10px">Automation Playbook</div>${steps}</div>
+        <div class="chart-panel" style="margin-top:12px"><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-tertiary);margin-bottom:10px">ROI estimate</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:13px">
+            <div><span class="text-muted">Pipeline</span><div style="font-size:20px;font-weight:600">$${roi.pipeline_value_usd ?? '—'}</div></div>
+            <div><span class="text-muted">Time saved</span><div style="font-size:20px;font-weight:600">${roi.hours_saved ?? '—'}h</div></div>
+            <div><span class="text-muted">ROI</span><div style="font-size:20px;font-weight:600">${roi.roi_multiple ?? '—'}×</div></div>
+          </div></div>
+        <div class="chart-panel" style="margin-top:12px"><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-tertiary);margin-bottom:10px">Intent signals</div>${intentHtml}</div>
+      </div>`;
       $('#stats')?.classList.add('hidden');
       document.body.style.overflow = '';
       bindAnalyticsHandlers();
@@ -305,16 +366,48 @@
 
   function showPagePanels() {
     const t = global.getLgTab ? global.getLgTab() : 'search';
-    const isData = t === 'search' || t === 'all' || t === 'saved';
-    $('#searchPanel')?.classList.toggle('hidden', t === 'agent' || t === 'campaigns' || t === 'analytics' || t === 'infrastructure');
+    $('#searchPanel')?.classList.toggle('hidden', t === 'agent' || t === 'campaigns' || t === 'analytics' || t === 'infrastructure' || t === 'pipeline');
     $('#agentPanel')?.classList.toggle('hidden', t !== 'agent');
     $('#campaignsPanel')?.classList.toggle('hidden', t !== 'campaigns');
+    $('#pipelinePanel')?.classList.toggle('hidden', t !== 'pipeline');
     $('#analyticsPanel')?.classList.toggle('hidden', t !== 'analytics');
     $('#infraPanel')?.classList.toggle('hidden', t !== 'infrastructure');
-    $('#kpiStrip')?.classList.toggle('hidden', t === 'agent' || t === 'infrastructure');
+    $('#kpiStrip')?.classList.toggle('hidden', t === 'agent' || t === 'infrastructure' || t === 'pipeline');
     if (t === 'campaigns') renderCampaignsPage();
+    if (t === 'pipeline') renderPipelinePage();
     if (t === 'analytics') renderAnalyticsPage();
     if (t === 'infrastructure') renderInfrastructurePage();
+  }
+
+  const PIPELINE_CRM = ['new', 'contacted', 'replied', 'client', 'rejected'];
+  const PIPELINE_LABELS = {
+    new: { uk: 'Нові', ru: 'Новые', en: 'New' },
+    contacted: { uk: 'Контакт', ru: 'Контакт', en: 'Contacted' },
+    replied: { uk: 'Відповідь', ru: 'Ответ', en: 'Replied' },
+    client: { uk: 'Клієнт', ru: 'Клиент', en: 'Client' },
+    rejected: { uk: 'Відмова', ru: 'Отказ', en: 'Rejected' },
+  };
+
+  async function renderPipelinePage() {
+    const body = $('#pipelineBody');
+    if (!body) return;
+    body.innerHTML = '<div class="text-muted" style="padding:24px"><span class="spin"></span></div>';
+    const lang = global.getLgLang?.() || 'uk';
+    const leads = await fetch('/api/saved', { headers: typeof authHeaders === 'function' ? authHeaders() : {} }).then(r => r.json()).catch(() => []);
+    const cols = PIPELINE_CRM.map(st => {
+      const items = (leads || []).filter(l => (l.status || 'new') === st);
+      const label = (PIPELINE_LABELS[st] || {})[lang] || st;
+      return `<div class="crm-col"><div class="crm-col-head">${label} <span class="badge">${items.length}</span></div>
+        <div class="crm-col-body">${items.slice(0, 40).map(l => {
+          const c = l.company || {};
+          return `<button type="button" class="crm-card" data-open="${l._id || l.saved_id}">
+            <div class="crm-card-name">${global.esc ? global.esc(c.name) : c.name}</div>
+            <div class="text-muted" style="font-size:11px">${global.esc ? global.esc(c.city || '') : (c.city || '')}</div>
+          </button>`;
+        }).join('') || '<span class="text-muted" style="font-size:12px;padding:8px">—</span>'}</div></div>`;
+    }).join('');
+    body.innerHTML = `<div class="page-header"><h3 style="margin:0;font-family:var(--font-display)">Pipeline CRM</h3></div><div class="crm-board">${cols}</div>`;
+    body.querySelectorAll('[data-open]').forEach(btn => btn.onclick = () => global.openLeadDetail?.(btn.dataset.open));
   }
 
   function initDrawerTabs() {
@@ -439,7 +532,7 @@
     originalPaintTabs = global.paintTabs;
     const PAGE_TITLES = {
       search: 'page_search', agent: 'page_agent', all: 'page_all', saved: 'page_saved',
-      campaigns: 'page_campaigns', analytics: 'page_analytics', infrastructure: 'page_infra',
+      campaigns: 'page_campaigns', analytics: 'page_analytics', infrastructure: 'page_infra', pipeline: 'tab_pipeline',
     };
     const PAGE_SUBS = {
       search: 'page_sub_search', agent: 'page_sub_agent', all: 'page_sub_all', saved: 'page_sub_saved',
@@ -510,6 +603,7 @@
     if (origOpenOutreach) {
       global.openOutreach = function (id) { origOpenOutreach(id); initDrawerTabs(); };
     }
+    global.renderPipelinePage = renderPipelinePage;
     global.showToast = showToast;
     global.renderInfrastructurePage = renderInfrastructurePage;
     global.renderCampaignsPage = renderCampaignsPage;

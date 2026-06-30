@@ -13,7 +13,7 @@ import io
 from typing import List, Optional
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -64,7 +64,11 @@ from .outreach.sequences import start_sequence, list_sequences
 from .outreach.reply_handler import handle_reply, recent_replies
 from .signals.listeners import poll_signals, list_recent_signals
 from . import worker
-from .db import init_schema, backend as db_backend
+from .db import init_schema, connect, backend as db_backend
+from . import tenant
+from .http_util import api_from_result
+from . import playbook as playbook_mod
+from . import intent_engine
 
 app = FastAPI(title="LeadGen Autopilot")
 app.add_middleware(
@@ -75,23 +79,93 @@ app.add_middleware(
 )
 
 
+INDEX_PATH = Path(__file__).with_name("static") / "index.html"
+LOGIN_PATH = Path(__file__).with_name("static") / "login.html"
+REGISTER_PATH = Path(__file__).with_name("static") / "register.html"
+STATIC_DIR = Path(__file__).with_name("static")
+
+
+def _html_page(path: Path) -> HTMLResponse:
+    return HTMLResponse(
+        path.read_text(encoding="utf-8"),
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache"},
+    )
+
+
+def _session_response(payload: dict, token: str) -> JSONResponse:
+    resp = JSONResponse(payload)
+    secure = bool(os.environ.get("VERCEL") or os.environ.get("RENDER"))
+    resp.set_cookie(
+        auth.SESSION_COOKIE,
+        token,
+        httponly=True,
+        samesite="lax",
+        secure=secure,
+        max_age=86400 * 30,
+        path="/",
+    )
+    return resp
+
+
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
-    if request.url.path.startswith("/api/") and request.url.path not in (
-        "/api/ai_status", "/api/categories",
-    ):
-        auth.check_request(request)
+    path = request.url.path
+    user_id = auth.resolve_user(request)
+    tenant.set_user(user_id)
+    if auth.is_public_path(path):
+        if path.startswith("/api/") and path not in (
+            "/api/ai_status",
+            "/api/categories",
+            "/api/health",
+            "/api/auth/login",
+            "/api/auth/register",
+            "/api/auth/status",
+        ):
+            auth.check_api_key(request)
+        return await call_next(request)
+
+    if path.startswith("/api/"):
+        auth.check_api_key(request)
+        if auth.auth_required():
+            if not user_id:
+                return JSONResponse({"detail": "Not authenticated"}, status_code=401)
+            request.state.user_id = user_id
+        elif user_id:
+            request.state.user_id = user_id
+        return await call_next(request)
+
+    if auth.auth_required() and not user_id:
+        return RedirectResponse("/login", status_code=302)
+    if user_id:
+        request.state.user_id = user_id
     return await call_next(request)
-INDEX_PATH = Path(__file__).with_name("static") / "index.html"
-STATIC_DIR = Path(__file__).with_name("static")
 
 
 @app.on_event("startup")
 def sync_structured_storage() -> None:
     try:
         init_schema()
+        from .config import get as cfg_get
+        from .service import LEADS_FILE, _dedupe_lead_dicts, _load_raw_leads
+
+        if cfg_get("DATABASE_URL"):
+            # One-time import: local JSONL → Postgres when DB is empty.
+            with connect() as con:
+                cur = con.execute("SELECT COUNT(*) FROM leads")
+                count = cur.fetchone()[0]
+            if count == 0 and LEADS_FILE.exists():
+                import json
+                rows = []
+                for line in LEADS_FILE.read_text(encoding="utf-8").splitlines():
+                    try:
+                        rows.append(json.loads(line))
+                    except json.JSONDecodeError:
+                        pass
+                merged = _dedupe_lead_dicts(rows)
+                storage.sync_leads([(service._lead_id(row), row) for row in merged])
         rows = load_leads(5000)
-        storage.sync_leads([(service._lead_id(row), row) for row in rows])
+        if not cfg_get("DATABASE_URL"):
+            storage.sync_leads([(service._lead_id(row), row) for row in rows])
     except Exception as exc:
         import logging
         logging.getLogger("leadgen").warning("startup sync skipped: %s", exc)
@@ -534,12 +608,85 @@ def favicon():
     )
 
 
+@app.get("/login", response_class=HTMLResponse)
+def login_page() -> HTMLResponse:
+    return _html_page(LOGIN_PATH)
+
+
+@app.get("/register", response_class=HTMLResponse)
+def register_page() -> HTMLResponse:
+    return _html_page(REGISTER_PATH)
+
+
+class AuthRegisterRequest(BaseModel):
+    email: str
+    password: str
+    name: str = ""
+
+
+class AuthLoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+@app.get("/api/auth/status")
+def api_auth_status(request: Request):
+    from . import users
+
+    user_id = auth.resolve_user(request)
+    user = users.get_user_by_id(user_id) if user_id else None
+    return JSONResponse({
+        "auth_required": auth.auth_required(),
+        "has_users": users.count_users() > 0,
+        "authenticated": bool(user),
+        "user": user,
+    })
+
+
+@app.post("/api/auth/register")
+def api_auth_register(req: AuthRegisterRequest):
+    from . import users
+
+    try:
+        user = users.create_user(req.email, req.password, req.name)
+    except ValueError as exc:
+        return JSONResponse({"detail": str(exc)}, status_code=400)
+    token = auth.make_token(user["id"])
+    return _session_response({"ok": True, "token": token, "user": user}, token)
+
+
+@app.post("/api/auth/login")
+def api_auth_login(req: AuthLoginRequest):
+    from . import users
+
+    user = users.authenticate(req.email, req.password)
+    if not user:
+        return JSONResponse({"detail": "Invalid email or password"}, status_code=401)
+    token = auth.make_token(user["id"])
+    return _session_response({"ok": True, "token": token, "user": user}, token)
+
+
+@app.post("/api/auth/logout")
+def api_auth_logout():
+    resp = JSONResponse({"ok": True})
+    resp.delete_cookie(auth.SESSION_COOKIE, path="/")
+    return resp
+
+
+@app.get("/api/auth/me")
+def api_auth_me(request: Request):
+    from . import users
+
+    user_id = auth.require_user(request)
+    user = users.get_user_by_id(user_id)
+    if not user:
+        return JSONResponse({"detail": "User not found"}, status_code=404)
+    return JSONResponse(user)
+
+
 @app.get("/", response_class=HTMLResponse)
 def index() -> HTMLResponse:
-    return HTMLResponse(
-        INDEX_PATH.read_text(encoding="utf-8"),
-        headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache"},
-    )
+    return _html_page(INDEX_PATH)
 
 
 # ---- Agent chat ----
@@ -622,7 +769,7 @@ def api_create_campaign(req: CampaignCreateRequest):
 
 @app.post("/api/campaigns/{campaign_id}/run")
 def api_run_campaign(campaign_id: str):
-    return JSONResponse(campaigns.run_campaign(campaign_id))
+    return api_from_result(campaigns.run_campaign(campaign_id))
 
 
 @app.post("/api/campaigns/{campaign_id}/pause")
@@ -657,14 +804,37 @@ def api_outreach_queue(status: Optional[str] = None, limit: int = 50):
     return JSONResponse(outreach_queue.list_queue(status, limit))
 
 
+class EnqueueRequest(BaseModel):
+    lead_id: str
+    channel: str = "email"
+    subject: str = ""
+    body: str = ""
+    to_email: Optional[str] = None
+
+
+@app.post("/api/outreach/enqueue")
+def api_outreach_enqueue(req: EnqueueRequest):
+    qid = outreach_queue.enqueue(
+        lead_id=req.lead_id,
+        channel=req.channel,
+        subject=req.subject,
+        body=req.body,
+        to_email=req.to_email,
+    )
+    return JSONResponse({"queue_id": qid, "ok": True})
+
+
 @app.post("/api/outreach/send/{queue_id}")
 def api_outreach_send_one(queue_id: str):
-    return JSONResponse(send_one(queue_id))
+    return api_from_result(send_one(queue_id))
 
 
 @app.post("/api/outreach/process")
 def api_outreach_process(limit: int = 10):
-    return JSONResponse(process_queue(limit=limit))
+    result = process_queue(limit=limit)
+    if result.get("failed") and not result.get("sent"):
+        return JSONResponse(result, status_code=422)
+    return JSONResponse(result)
 
 
 class SequenceRequest(BaseModel):
@@ -676,7 +846,10 @@ class SequenceRequest(BaseModel):
 @app.post("/api/outreach/sequence")
 def api_outreach_sequence(req: SequenceRequest):
     lang = req.lang if req.lang in LANGS else "uk"
-    sid = start_sequence(req.lead_id, channel=req.channel, lang=lang)
+    try:
+        sid = start_sequence(req.lead_id, channel=req.channel, lang=lang)
+    except ValueError as exc:
+        return JSONResponse({"detail": str(exc)}, status_code=404)
     return JSONResponse({"sequence_id": sid})
 
 
@@ -714,6 +887,36 @@ def api_signals_recent(limit: int = 20):
     return JSONResponse(list_recent_signals(limit))
 
 
+# ---- Playbook + ROI ----
+
+class RoiRequest(BaseModel):
+    leads: int = 100
+    conversion_pct: float = 2.0
+    deal_usd: float = 1500.0
+    hourly_cost: float = 35.0
+
+
+@app.get("/api/playbook")
+def api_playbook():
+    return JSONResponse(playbook_mod.get_playbook())
+
+
+@app.post("/api/playbook/roi")
+def api_playbook_roi(req: RoiRequest):
+    return JSONResponse(playbook_mod.roi_estimate(
+        leads=req.leads,
+        conversion_pct=req.conversion_pct,
+        deal_usd=req.deal_usd,
+        hourly_cost=req.hourly_cost,
+    ))
+
+
+@app.get("/api/intent/leads")
+def api_intent_leads(limit: int = 50):
+    rows = intent_engine.filter_intent_leads(load_leads(5000), limit=limit)
+    return JSONResponse(_decorate(rows))
+
+
 # ---- Background jobs ----
 
 class JobRequest(BaseModel):
@@ -747,7 +950,12 @@ def api_db_status():
 
 @app.get("/api/health")
 def api_health():
-    return JSONResponse({"ok": True, "vercel": bool(os.environ.get("VERCEL"))})
+    return JSONResponse({
+        "ok": True,
+        "vercel": bool(os.environ.get("VERCEL")),
+        "db": db_backend(),
+        "persistent": db_backend() == "postgresql",
+    })
 
 
 # Static assets live in leadgen/static/ next to this module — serve on Vercel too

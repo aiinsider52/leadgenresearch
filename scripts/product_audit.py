@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 import uuid
@@ -14,7 +15,8 @@ from typing import Any
 import requests
 from playwright.sync_api import sync_playwright, Route, Request, Response
 
-BASE = "http://127.0.0.1:8000"
+BASE = os.environ.get("AUDIT_BASE_URL", os.environ.get("BASE_URL", "http://127.0.0.1:8000"))
+SESSION = requests.Session()
 OUT = Path(__file__).resolve().parent.parent / "data" / "product_audit"
 OUT.mkdir(parents=True, exist_ok=True)
 SHOTS = OUT / "screenshots"
@@ -35,6 +37,42 @@ REPORT: dict[str, Any] = {
     "network_log": [],
     "console_log": [],
 }
+
+
+def _ensure_auth() -> None:
+    try:
+        st = SESSION.get(BASE + "/api/auth/status", timeout=30).json()
+    except Exception:
+        return
+    if not st.get("auth_required") or st.get("authenticated"):
+        return
+    email = os.environ.get("AUDIT_EMAIL", "audit@leadgen.local")
+    password = os.environ.get("AUDIT_PASSWORD", "auditpass12345")
+    for path, payload in (
+        ("/api/auth/register", {"email": email, "password": password, "name": "Audit Bot"}),
+        ("/api/auth/login", {"email": email, "password": password}),
+    ):
+        r = SESSION.post(BASE + path, json=payload, timeout=30)
+        if r.ok and r.json().get("token"):
+            SESSION.headers["Authorization"] = f"Bearer {r.json()['token']}"
+            return
+
+
+def http(method: str, path: str, **kw) -> dict:
+    t0 = time.perf_counter()
+    try:
+        r = SESSION.request(method, BASE + path, timeout=kw.pop("timeout", 180), **kw)
+        ms = round((time.perf_counter() - t0) * 1000, 1)
+        body = None
+        try:
+            body = r.json()
+        except Exception:
+            body = (r.text or "")[:500]
+        return {"method": method, "path": path, "status": r.status_code, "ms": ms,
+                "ok": 200 <= r.status_code < 300, "body_preview": str(body)[:300]}
+    except Exception as exc:
+        return {"method": method, "path": path, "status": 0, "ms": round((time.perf_counter() - t0) * 1000, 1),
+                "ok": False, "error": str(exc)}
 
 
 @dataclass
@@ -69,23 +107,6 @@ def add_issue(**kw) -> None:
     REPORT["issues"].append(asdict(Issue(id=f"ISS-{len(REPORT['issues'])+1:03d}", **kw)))
 
 
-def http(method: str, path: str, **kw) -> dict:
-    t0 = time.perf_counter()
-    try:
-        r = requests.request(method, BASE + path, timeout=kw.pop("timeout", 180), **kw)
-        ms = round((time.perf_counter() - t0) * 1000, 1)
-        body = None
-        try:
-            body = r.json()
-        except Exception:
-            body = (r.text or "")[:500]
-        return {"method": method, "path": path, "status": r.status_code, "ms": ms,
-                "ok": 200 <= r.status_code < 300, "body_preview": str(body)[:300]}
-    except Exception as exc:
-        return {"method": method, "path": path, "status": 0, "ms": round((time.perf_counter() - t0) * 1000, 1),
-                "ok": False, "error": str(exc)}
-
-
 def discover_sitemap_via_http() -> None:
     """Map API surface from OpenAPI-less discovery: known paths + HTML link scan."""
     apis = [
@@ -103,7 +124,7 @@ def discover_sitemap_via_http() -> None:
         api_results.append(http(m, p, timeout=60))
     REPORT["sitemap"]["api_endpoints"] = api_results
 
-    r = requests.get(BASE + "/", timeout=30)
+    r = SESSION.get(BASE + "/", timeout=30)
     ids = sorted(set(re.findall(r'id="([^"]+)"', r.text)))
     classes = sorted(set(re.findall(r'class="([^"]*modal[^"]*)"', r.text, re.I)))
     REPORT["sitemap"]["html_element_ids"] = ids
@@ -144,7 +165,7 @@ def stress_search_limits() -> None:
                 pass
         # re-fetch properly
         try:
-            r = requests.post(BASE + "/api/find", json={
+            r = SESSION.post(BASE + "/api/find", json={
                 "category": "agency", "city": "Київ", "limit": limit,
                 "source": "osm", "enrich": False,
             }, timeout=300)
@@ -185,7 +206,7 @@ def _concurrent_finds(n: int) -> list:
     payload = {"category": "agency", "city": "Київ", "limit": 5, "source": "osm", "enrich": False}
     results = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=n) as ex:
-        futs = [ex.submit(requests.post, BASE + "/api/find", json=payload, timeout=120) for _ in range(n)]
+        futs = [ex.submit(SESSION.post, BASE + "/api/find", json=payload, timeout=120) for _ in range(n)]
         for f in concurrent.futures.as_completed(futs):
             try:
                 r = f.result()
@@ -246,13 +267,33 @@ def run_playwright_audit() -> None:
             features.append(FeatureResult(name=name, ok=ok, duration_ms=ms, errors=errs,
                                           screenshot=str(shot)).__dict__)
 
-        # Load
-        page.goto(BASE, wait_until="networkidle", timeout=90000)
+        # Auth + load
+        _ensure_auth()
+        page.goto(BASE, wait_until="domcontentloaded", timeout=90000)
+        if "/login" in page.url or "/register" in page.url:
+            email = os.environ.get("AUDIT_EMAIL", "audit@leadgen.local")
+            password = os.environ.get("AUDIT_PASSWORD", "auditpass12345")
+            if "/register" in page.url:
+                page.fill("#email", email)
+                page.fill("#password", password)
+                if page.locator("#name").count():
+                    page.fill("#name", "Audit")
+                page.locator("form").first.evaluate("f => f.requestSubmit()")
+            else:
+                page.fill("#email", email)
+                page.fill("#password", password)
+                page.locator("form").first.evaluate("f => f.requestSubmit()")
+            page.wait_for_url("**/", timeout=60000)
+        page.wait_for_load_state("networkidle", timeout=90000)
         feat("dashboard_load", lambda: None)
 
         # Tabs sitemap
-        for tab in ["search", "all", "saved", "agent"]:
-            feat(f"tab_{tab}", lambda t=tab: page.click(f'.tabbtn[data-tab="{t}"]', timeout=10000))
+        for tab in ["search", "all", "saved", "agent", "pipeline", "campaigns", "analytics", "infrastructure"]:
+            def click_tab(t=tab):
+                sel = f'.tabbtn[data-tab="{t}"], .page-nav[data-tab="{t}"]'
+                page.locator(sel).first.click(timeout=10000)
+                page.wait_for_timeout(600)
+            feat(f"tab_{tab}", click_tab)
 
         # Search OSM small
         page.click('.tabbtn[data-tab="search"]')
@@ -309,13 +350,12 @@ def run_playwright_audit() -> None:
 
         # Analytics
         def stats():
-            page.click("#statsBtnSide", timeout=5000)
-            page.wait_for_timeout(1000)
-            if page.locator("#stats").evaluate("el => el.classList.contains('hidden')"):
-                raise RuntimeError("stats modal not open")
+            page.locator('.page-nav[data-tab="analytics"], #statsBtnSide').first.click(timeout=5000)
+            page.wait_for_timeout(1500)
+            body = page.locator("#analyticsBody, #statsBody")
+            if body.count() == 0:
+                raise RuntimeError("analytics panel empty")
         feat("analytics_modal", stats)
-        feat("analytics_campaigns_section", lambda: page.locator("#campCreate").is_visible())
-        page.keyboard.press("Escape")
 
         # Agent
         def agent():
@@ -403,7 +443,8 @@ def run_playwright_audit() -> None:
 
 def api_feature_suite() -> None:
     """Execute backend features via HTTP as customer API would."""
-    lead_r = requests.get(BASE + "/api/leads", timeout=60)
+    _ensure_auth()
+    lead_r = SESSION.get(BASE + "/api/leads", timeout=60)
     lead = lead_r.json()[0] if lead_r.ok and lead_r.json() else None
     suite = []
 
@@ -438,7 +479,7 @@ def api_feature_suite() -> None:
         "limit_per_run": 3, "cron": "0 7 * * *", "expand_niche": False,
     })
     if cr.get("ok"):
-        camps = requests.get(BASE + "/api/campaigns").json()
+        camps = SESSION.get(BASE + "/api/campaigns").json()
         if camps.get("campaigns"):
             cid = camps["campaigns"][-1]["id"]
     if cid:
@@ -458,8 +499,8 @@ def api_feature_suite() -> None:
     run("agent_chat", "POST", "/api/chat", json={"message": "статистика", "lang": "uk"}, timeout=120)
     run("export_csv", "GET", "/api/export.csv?scope=saved")
 
-    usage_before = requests.get(BASE + "/api/usage").json()
-    storage = requests.get(BASE + "/api/storage/status").json()
+    usage_before = SESSION.get(BASE + "/api/usage").json()
+    storage = SESSION.get(BASE + "/api/storage/status").json()
     REPORT["api_features"] = suite
     REPORT["usage_snapshot"] = usage_before
     REPORT["storage_snapshot"] = storage
@@ -475,6 +516,8 @@ def rank_issues() -> None:
 
 
 def main() -> None:
+    print(f"Audit target: {BASE}")
+    _ensure_auth()
     print("Step 1: Sitemap discovery...")
     discover_sitemap_via_http()
     print("Step 3-4: API feature suite...")

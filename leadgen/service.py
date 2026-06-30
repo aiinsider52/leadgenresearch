@@ -41,6 +41,7 @@ OFFICE_NICHES = {"agency", "law", "real_estate", "education"}
 from .sources.osm import Company, discover, discover_around
 
 from .config import data_dir, get
+from . import kv
 
 DATA_DIR = data_dir()  # writable; falls back to /tmp on read-only hosts (Vercel)
 LEADS_FILE = DATA_DIR / "leads.jsonl"
@@ -410,17 +411,18 @@ def find_leads_around(
 
 
 def save_leads(leads: list[Lead]) -> None:
-    """Upsert leads atomically so repeated searches enrich instead of bloating JSONL."""
+    """Upsert leads atomically so repeated searches enrich instead of bloating storage."""
     with _LEADS_LOCK:
         items = _load_raw_leads()
         known_ids = {_lead_id(item) for item in items}
         items.extend(lead.to_dict() for lead in leads)
         merged = _dedupe_lead_dicts(items)
-        tmp = LEADS_FILE.with_suffix(".jsonl.tmp")
-        with tmp.open("w", encoding="utf-8") as f:
-            for lead in merged:
-                f.write(json.dumps(lead, ensure_ascii=False) + "\n")
-        tmp.replace(LEADS_FILE)
+        if not get("DATABASE_URL"):
+            tmp = LEADS_FILE.with_suffix(".jsonl.tmp")
+            with tmp.open("w", encoding="utf-8") as f:
+                for lead in merged:
+                    f.write(json.dumps(lead, ensure_ascii=False) + "\n")
+            tmp.replace(LEADS_FILE)
         storage.sync_leads([(_lead_id(row), row) for row in merged])
         for lead in leads:
             row = lead.to_dict()
@@ -506,6 +508,8 @@ def _lead_aliases(lead: dict) -> set[str]:
 
 
 def _load_raw_leads() -> list[dict]:
+    if get("DATABASE_URL"):
+        return storage.load_all_leads()
     if not LEADS_FILE.exists():
         return []
     rows = []
@@ -583,16 +587,12 @@ def _merge_leads(a: dict, b: dict) -> dict:
 
 
 def _read_saved() -> dict[str, dict]:
-    if not SAVED_FILE.exists():
-        return {}
-    try:
-        return json.loads(SAVED_FILE.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return {}
+    data = kv.load_json("saved", SAVED_FILE, {})
+    return data if isinstance(data, dict) else {}
 
 
 def _write_saved(d: dict[str, dict]) -> None:
-    SAVED_FILE.write_text(json.dumps(d, ensure_ascii=False, indent=2), encoding="utf-8")
+    kv.save_json("saved", SAVED_FILE, d)
 
 
 PIPELINE_STATUSES = ["new", "contacted", "replied", "client", "rejected"]
@@ -779,28 +779,43 @@ def find_leads_expanded(category_label: str, city: str = "", country: str = "Ukr
 # ---- Analytics --------------------------------------------------------------
 
 def stats() -> dict:
-    """Counters for the analytics view: pipeline funnel (saved) + breakdowns
-    (all leads) by tier / source / city."""
+    """Counters for the analytics view: pipeline funnel (saved) + breakdowns."""
     from collections import Counter
+
     saved = list_favorites()
-    allleads = load_leads(1000)
+    if get("DATABASE_URL"):
+        agg = storage.lead_aggregates()
+        allleads = agg.pop("_sample", [])
+        total = agg["total_leads"]
+        by_tier = agg["by_tier"]
+        by_source = agg["by_source"]
+        by_city = agg["by_city"]
+        with_email = agg["with_email"]
+        with_dm = agg["with_dm"]
+        with_website = agg["with_website"]
+        verified_email = agg["verified_email"]
+        with_intent = agg["with_intent"]
+    else:
+        allleads = _load_raw_leads()
+        total = len(_dedupe_lead_dicts(allleads))
+        by_tier = Counter((l.get("score", {}) or {}).get("tier", "cold") for l in allleads)
+        by_source = Counter((l.get("company", {}) or {}).get("source", "?") for l in allleads)
+        by_city = Counter((l.get("company", {}) or {}).get("city", "?") for l in allleads)
+        with_email = sum(1 for l in allleads if (l.get("enrichment", {}) or {}).get("emails"))
+        with_dm = sum(1 for l in allleads if (l.get("enrichment", {}) or {}).get("decision_makers"))
+        with_website = sum(1 for l in allleads if (l.get("company", {}) or {}).get("website"))
+        verified_email = sum(
+            bool(((l.get("enrichment", {}) or {}).get("contact_quality") or {}).get("verified_email_count"))
+            for l in allleads
+        )
+        with_intent = sum(
+            bool(set(((l.get("enrichment", {}) or {}).get("signals") or {})) &
+                 {"hiring", "funding", "expansion", "tender", "automation_need"})
+            for l in allleads
+        )
+        by_tier, by_source, by_city = dict(by_tier), dict(by_source), dict(by_city.most_common(8))
 
     funnel = Counter(s.get("status", "new") for s in saved)
-    by_tier = Counter((l.get("score", {}) or {}).get("tier", "cold") for l in allleads)
-    by_source = Counter((l.get("company", {}) or {}).get("source", "?") for l in allleads)
-    by_city = Counter((l.get("company", {}) or {}).get("city", "?") for l in allleads)
-    with_email = sum(1 for l in allleads if (l.get("enrichment", {}) or {}).get("emails"))
-    with_dm = sum(1 for l in allleads if (l.get("enrichment", {}) or {}).get("decision_makers"))
-    with_website = sum(1 for l in allleads if (l.get("company", {}) or {}).get("website"))
-    verified_email = sum(
-        bool(((l.get("enrichment", {}) or {}).get("contact_quality") or {}).get("verified_email_count"))
-        for l in allleads
-    )
-    with_intent = sum(
-        bool(set(((l.get("enrichment", {}) or {}).get("signals") or {})) &
-             {"hiring", "funding", "expansion", "tender", "automation_need"})
-        for l in allleads
-    )
     source_funnel: dict[str, dict[str, int]] = {}
     for lead in saved:
         company = lead.get("company", {}) or {}
@@ -820,7 +835,7 @@ def stats() -> dict:
         }
 
     return {
-        "total_leads": len(allleads),
+        "total_leads": total,
         "saved": len(saved),
         "with_email": with_email,
         "with_dm": with_dm,
@@ -828,9 +843,9 @@ def stats() -> dict:
         "verified_email": verified_email,
         "with_intent": with_intent,
         "funnel": {s: funnel.get(s, 0) for s in PIPELINE_STATUSES},
-        "by_tier": dict(by_tier),
-        "by_source": dict(by_source),
-        "by_city": dict(by_city.most_common(8)),
+        "by_tier": by_tier if isinstance(by_tier, dict) else dict(by_tier),
+        "by_source": by_source if isinstance(by_source, dict) else dict(by_source),
+        "by_city": by_city if isinstance(by_city, dict) else dict(by_city),
         "source_conversion": source_conversion,
     }
 
@@ -841,11 +856,11 @@ ICP_FILE = DATA_DIR / "icp.txt"
 
 
 def get_icp() -> str:
-    return ICP_FILE.read_text(encoding="utf-8").strip() if ICP_FILE.exists() else ""
+    return kv.load_text("icp", ICP_FILE, "").strip()
 
 
 def set_icp(text: str) -> None:
-    ICP_FILE.write_text(text.strip(), encoding="utf-8")
+    kv.save_text("icp", ICP_FILE, text.strip())
 
 
 # ---- Scheduled searches (run via run_scheduled.py / cron) --------------------
@@ -854,16 +869,12 @@ SCHEDULES_FILE = DATA_DIR / "schedules.json"
 
 
 def list_schedules() -> list[dict]:
-    if SCHEDULES_FILE.exists():
-        try:
-            return json.loads(SCHEDULES_FILE.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            pass
-    return []
+    data = kv.load_json("schedules", SCHEDULES_FILE, [])
+    return data if isinstance(data, list) else []
 
 
 def _save_schedules(s: list[dict]) -> None:
-    SCHEDULES_FILE.write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")
+    kv.save_json("schedules", SCHEDULES_FILE, s)
 
 
 def add_schedule(search: dict) -> list[dict]:

@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="/static/css/utilities.css"/>
 <link rel="stylesheet" href="/static/css/misc.css"/>
 <link rel="stylesheet" href="/static/css/motion.css"/>
+<link rel="stylesheet" href="/static/css/auth.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
@@ -45,8 +46,9 @@
       <button data-tab="agent" class="tabbtn nav-item"><span class="ic" data-ic="sparkle"></span><span data-i="tab_agent">Агент</span><span class="live-dot"></span></button>
       <button data-tab="all" class="tabbtn nav-item"><span class="ic" data-ic="database"></span><span data-i="tab_leads">Ліди</span><span id="allCount" class="badge"></span></button>
       <button data-tab="saved" class="tabbtn nav-item nav-sub"><span class="ic" data-ic="heart"></span><span data-i="tab_saved">Збережені</span><span id="savedCount" class="badge"></span></button>
+      <button data-tab="pipeline" class="page-nav nav-item"><span class="ic" data-ic="chart"></span><span data-i="tab_pipeline">CRM</span></button>
       <button data-tab="campaigns" class="page-nav nav-item"><span class="ic" data-ic="sparkle"></span><span data-i="tab_campaigns">Кампанії</span></button>
-      <button data-tab="analytics" class="page-nav nav-item"><span class="ic" data-ic="chart"></span><span data-i="analytics_t">Аналітика</span></button>
+      <button data-tab="analytics" id="statsBtnSide" class="page-nav nav-item"><span class="ic" data-ic="chart"></span><span data-i="analytics_t">Аналітика</span></button>
       <button data-tab="infrastructure" class="page-nav nav-item"><span class="ic" data-ic="sliders"></span><span data-i="tab_infra">Інфраструктура</span></button>
     </nav>
     <div class="sidebar-footer hidden">
@@ -77,6 +79,10 @@
           <option value="uk">UA</option><option value="ru">RU</option><option value="en">EN</option>
         </select>
         <button id="theme" class="btn-icon" title="Theme"><span class="ic" data-ic="moon"></span></button>
+        <div id="userMenu" class="topbar-user hidden">
+          <span id="userEmail" class="topbar-user-email"></span>
+          <button type="button" id="logoutBtn" class="btn btn-ghost" style="padding:4px 10px;font-size:11px"></button>
+        </div>
         <button id="statsBtn" class="btn-icon hidden sm:grid" title="Аналітика" style="display:none"><span class="ic" data-ic="chart"></span></button>
       </div>
     </header>
@@ -163,6 +169,7 @@
       </section>
 
       <section id="campaignsPanel" class="page-panel hidden"><div id="campaignsBody"></div></section>
+      <section id="pipelinePanel" class="page-panel hidden"><div id="pipelineBody"></div></section>
       <section id="analyticsPanel" class="page-panel hidden"><div id="analyticsBody"></div></section>
       <section id="infraPanel" class="page-panel hidden"><div id="infraBody"></div></section>
 
@@ -329,10 +336,13 @@
   </div>
 </div>
 
+<div id="lgToast" class="lg-toast hidden" role="status"></div>
+
 <!-- Bulk bar -->
 <div id="bulkBar" class="hidden" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:40;align-items:center;gap:12px;padding:12px 20px;border-radius:var(--radius-xl);background:var(--bg-2);border:1px solid var(--border-strong);box-shadow:0 24px 60px -20px rgba(0,0,0,.7)">
   <span id="bulkCount" style="font-size:13px;font-weight:600"></span>
   <button id="bulkSave" class="btn btn-primary" style="padding:8px 14px;font-size:12px">♥ Зберегти</button>
+  <button id="bulkContacted" class="btn btn-secondary" style="padding:8px 14px;font-size:12px">✉ Contacted</button>
   <button id="bulkExport" class="btn btn-secondary" style="padding:8px 14px;font-size:12px">CSV</button>
   <button id="bulkClear" class="btn-icon" style="width:32px;height:32px">✕</button>
 </div>
@@ -368,8 +378,9 @@
           <button type="button" data-ch="telegram" class="chtab btn btn-ghost" style="flex:1;padding:8px;font-size:12px">Telegram</button>
         </div>
         <textarea id="dwMsg" rows="9" class="input" style="resize:vertical;color:var(--text)" placeholder=""></textarea>
-        <div style="display:flex;gap:8px;margin-top:12px">
-          <button type="button" id="dwGen" class="btn btn-primary" style="flex:1"><span class="ic" data-ic="bolt"></span><span data-i="regen">Згенерувати ще раз</span></button>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+          <button type="button" id="dwGen" class="btn btn-primary" style="flex:1;min-width:120px"><span class="ic" data-ic="bolt"></span><span data-i="regen">Згенерувати ще раз</span></button>
+          <button type="button" id="dwQueue" class="btn btn-secondary" style="flex:1;min-width:120px"><span class="ic" data-ic="send"></span><span data-i="queue_send">В чергу</span></button>
           <button type="button" id="dwCopy" class="btn btn-secondary"><span class="ic" data-ic="copy"></span><span data-i="copy">Копіювати</span></button>
         </div>
       </section>
@@ -412,6 +423,7 @@
 </div>
 
 
+<script src="/static/js/auth.js"></script>
 <script src="/static/js/api.js"></script>
 <script src="/static/js/icons.js"></script>
 <script src="/static/js/i18n.js"></script>
@@ -425,5 +437,5 @@
 <script src="/static/js/campaigns.js"></script>
 <script src="/static/js/infrastructure.js"></script>
 <script src="/static/js/v6-pages.js"></script>
-<script>initV6Redesign();</script>
+<script>guardDashboard().then(()=>initV6Redesign());</script>
 </body></html>

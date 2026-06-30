@@ -48,6 +48,7 @@ def start_sequence(lead_id: str, *, channel: str = "email", lang: str = "uk",
     for i, day in enumerate(steps):
         draft = write_message(lead, 0, channel, lang)
         emails = (lead.get("enrichment", {}) or {}).get("emails") or []
+        send_after = (datetime.now(timezone.utc) + timedelta(days=day)).isoformat() if day > 0 else None
         qid = enqueue(
             lead_id=lead_id,
             channel=channel,
@@ -56,11 +57,12 @@ def start_sequence(lead_id: str, *, channel: str = "email", lang: str = "uk",
             to_email=emails[0] if emails else None,
             sequence_id=sid,
             step=i,
+            send_after=send_after,
         )
         drafts.append({
             "queue_id": qid,
             "step": i,
-            "send_after": (datetime.now(timezone.utc) + timedelta(days=day)).isoformat(),
+            "send_after": send_after,
         })
 
     data = _read()

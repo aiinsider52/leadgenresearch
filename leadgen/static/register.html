@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="uk" class="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Register — LeadGen Autopilot</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23050505'/%3E%3Cpath d='M4 14h4l2-5 4 10 2-5h4' fill='none' stroke='%237C5CFF' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/tokens.css"/>
+<link rel="stylesheet" href="/static/css/legacy.css"/>
+<link rel="stylesheet" href="/static/css/components.css"/>
+<link rel="stylesheet" href="/static/css/auth.css"/>
+</head>
+<body>
+<div class="app-bg"><div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div></div>
+<main class="auth-page">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h4l2-5 4 10 2-5h4"/></svg>
+      </div>
+      <div>
+        <h1>LeadGen Autopilot</h1>
+        <p>Enterprise AI Sales</p>
+      </div>
+    </div>
+    <h2 class="auth-title" data-i="auth_register_title">Реєстрація</h2>
+    <p class="auth-sub" data-i="auth_register_sub">Створіть акаунт для доступу до платформи</p>
+    <div id="authError" class="auth-error" role="alert"></div>
+    <form id="registerForm" novalidate>
+      <div class="auth-field">
+        <label for="name" data-i="auth_name">Ім'я</label>
+        <input id="name" name="name" type="text" autocomplete="name" placeholder="Ваше ім'я">
+      </div>
+      <div class="auth-field">
+        <label for="email" data-i="auth_email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="email" required placeholder="you@company.com">
+      </div>
+      <div class="auth-field">
+        <label for="password" data-i="auth_password">Пароль</label>
+        <input id="password" name="password" type="password" autocomplete="new-password" required minlength="8" placeholder="••••••••">
+        <p class="auth-hint" data-i="auth_password_hint">Мінімум 8 символів</p>
+      </div>
+      <div class="auth-field">
+        <label for="password2" data-i="auth_password_confirm">Підтвердження пароля</label>
+        <input id="password2" name="password2" type="password" autocomplete="new-password" required minlength="8" placeholder="••••••••">
+      </div>
+      <button type="submit" class="btn btn-primary auth-submit" data-i="auth_sign_up">Створити акаунт</button>
+    </form>
+    <p class="auth-footer"><span data-i="auth_have_account">Вже є акаунт?</span> <a href="/login" data-i="auth_login_link">Увійти</a></p>
+  </div>
+</main>
+<script src="/static/js/auth.js"></script>
+<script>initAuthPage('register');</script>
+</body>
+</html>

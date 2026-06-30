@@ -53,11 +53,18 @@ function renderCurrent(){const base=tab==='saved'?savedLeads:tab==='all'?allLead
 
 // ---- bulk actions ----
 function selectedLeads(){const pool=[...lastLeads,...savedLeads,...allLeads];return [...selectedIds].map(id=>pool.find(l=>l._id===id)).filter(Boolean);}
-function updateBulkBar(){const n=selectedIds.size;$('#bulkBar').classList.toggle('hidden',n===0);
+function updateBulkBar(){const n=selectedIds.size;const bar=$('#bulkBar');
+  bar.classList.toggle('hidden',n===0);
+  if(n>0)bar.style.display='flex';
   $('#bulkCount').textContent=(lang==='en'?`${n} selected`:lang==='ru'?`${n} выбрано`:`${n} виділено`);}
 $('#bulkSave').onclick=async()=>{const leads=selectedLeads();if(!leads.length)return;
-  await fetch('/api/save_bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({leads})});
-  leads.forEach(l=>l._saved=true);selectedIds.clear();refreshSavedCount();renderCurrent();};
+  try{await fetch('/api/save_bulk',{method:'POST',headers:authHeaders(),body:JSON.stringify({leads})});
+  leads.forEach(l=>l._saved=true);selectedIds.clear();refreshSavedCount();renderCurrent();
+  if(typeof showToast==='function')showToast(lang==='en'?'Saved':'Збережено');
+  if(typeof refreshKpis==='function')refreshKpis();}catch(e){if(typeof showToast==='function')showToast(e.message||'Error','error');}};
+$('#bulkContacted')?.addEventListener('click',async()=>{const leads=selectedLeads().filter(l=>l._saved);
+  for(const l of leads){await fetch('/api/update_saved',{method:'POST',headers:authHeaders(),body:JSON.stringify({lead_id:l._id,status:'contacted'})});l.status='contacted';}
+  selectedIds.clear();renderCurrent();if(typeof showToast==='function')showToast('Contacted');if(typeof refreshKpis==='function')refreshKpis();});
 $('#bulkExport').onclick=()=>{const leads=selectedLeads();if(!leads.length)return;
   const head=['name','city','website','rating','size','score','tier','emails','phones','decision_makers'];
   const rows=leads.map(l=>{const c=l.company||{},en=l.enrichment||{},s=l.score||{};

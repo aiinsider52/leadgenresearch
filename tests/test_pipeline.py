@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import unittest
 import tempfile
 from pathlib import Path
@@ -106,7 +107,14 @@ class QualityTests(unittest.TestCase):
 
     def test_sqlite_storage_upserts_lead(self):
         with tempfile.TemporaryDirectory() as tmp:
-            with patch.object(storage, "DB_FILE", Path(tmp) / "leadgen.db"):
+            db_path = Path(tmp) / "leadgen.db"
+            with patch("leadgen.db.DB_FILE", db_path), patch.dict(
+                os.environ, {}, clear=False
+            ):
+                os.environ.pop("DATABASE_URL", None)
+                from leadgen.db import init_schema
+
+                init_schema()
                 storage.upsert_lead("d:acme.test", {
                     "company": {"name": "Acme", "city": "Kyiv", "source": "brave_intent"},
                     "score": {"score": 75, "tier": "hot"},
