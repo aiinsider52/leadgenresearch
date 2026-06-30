@@ -10,4 +10,35 @@ data/pipeline_metrics.jsonl
 data/leads.before_compact.jsonl
 data/lead_history.jsonl
 data/leadgen.db*
+# macOS
+
+.DS_Store
+
+# Cursor
+
+.cursor/
+
+# Runtime
+
+data/
+
+# Python
+
+__pycache__/
+
+*.pyc
+
+# SQLite
+
+*.sqlite
+
+*.db
+
+# Logs
+
+*.log
+
+# Environment
+
+.env
 .venv/

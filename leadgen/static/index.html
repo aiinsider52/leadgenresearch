@@ -768,6 +768,11 @@ html:not(.dark) .bottom-nav { background: rgba(246,247,251,.92); }
 }
 
 </style>
+<link rel="stylesheet" href="css/tokens.css"/>
+<link rel="stylesheet" href="css/components.css"/>
+<link rel="stylesheet" href="css/layouts.css"/>
+<link rel="stylesheet" href="css/pages.css"/>
+<link rel="stylesheet" href="css/motion.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -829,7 +834,7 @@ tailwind.config = {
       </div>
       <div>
         <h1 id="title">LeadGen <span style="font-size:10px;font-weight:600;opacity:.7;letter-spacing:.08em">AUTOPILOT</span></h1>
-        <p>Enterprise AI Sales <span style="opacity:.45;font-size:10px">· v5</span></p>
+        <p>Enterprise AI Sales <span style="opacity:.45;font-size:10px">· v6</span></p>
       </div>
     </div>
     <button type="button" id="sidebarSearch" class="sidebar-search">
@@ -840,16 +845,14 @@ tailwind.config = {
     <nav class="sidebar-nav">
       <button data-tab="search" class="tabbtn nav-item"><span class="ic" data-ic="search"></span><span data-i="tab_search">Пошук</span></button>
       <button data-tab="agent" class="tabbtn nav-item"><span class="ic" data-ic="sparkle"></span><span data-i="tab_agent">Агент</span><span class="live-dot"></span></button>
-      <button data-tab="all" class="tabbtn nav-item"><span class="ic" data-ic="database"></span><span data-i="tab_all">Всі ліди</span><span id="allCount" class="badge"></span></button>
-      <button data-tab="saved" class="tabbtn nav-item"><span class="ic" data-ic="heart"></span><span data-i="tab_saved">Збережені</span><span id="savedCount" class="badge"></span></button>
+      <button data-tab="all" class="tabbtn nav-item"><span class="ic" data-ic="database"></span><span data-i="tab_leads">Ліди</span><span id="allCount" class="badge"></span></button>
+      <button data-tab="saved" class="tabbtn nav-item nav-sub"><span class="ic" data-ic="heart"></span><span data-i="tab_saved">Збережені</span><span id="savedCount" class="badge"></span></button>
+      <button data-tab="campaigns" class="page-nav nav-item"><span class="ic" data-ic="sparkle"></span><span data-i="tab_campaigns">Кампанії</span></button>
+      <button data-tab="analytics" class="page-nav nav-item"><span class="ic" data-ic="chart"></span><span data-i="analytics_t">Аналітика</span></button>
+      <button data-tab="infrastructure" class="page-nav nav-item"><span class="ic" data-ic="sliders"></span><span data-i="tab_infra">Інфраструктура</span></button>
     </nav>
-    <div class="upgrade-card glass-card">
-      <h4 data-i="upgrade_title">Autopilot Pro</h4>
-      <p data-i="upgrade_sub">AI-агент, outreach loop та n8n автоматизації в одному місці.</p>
-      <button type="button" class="btn btn-primary" id="upgradeAgentBtn" data-i="upgrade_cta">Відкрити агента</button>
-    </div>
     <div class="sidebar-footer">
-      <button id="statsBtnSide" class="nav-item" style="width:100%"><span class="ic" data-ic="chart"></span><span data-i="analytics_t">Аналітика</span></button>
+      <button type="button" class="page-nav nav-item" data-tab="infrastructure" style="width:100%"><span class="ic" data-ic="sliders"></span><span data-i="tab_infra">Infrastructure</span></button>
     </div>
   </aside>
 
@@ -866,6 +869,10 @@ tailwind.config = {
           <button data-tab="all" class="tabbtn btn btn-ghost" style="padding:8px 12px"><span class="ic" data-ic="database"></span></button>
           <button data-tab="saved" class="tabbtn btn btn-ghost" style="padding:8px 12px"><span class="ic" data-ic="heart"></span></button>
         </nav>
+        <button type="button" id="infraHealthBtn" class="infra-health hidden sm:inline-flex" title="Infrastructure">
+          <span id="infraHealthDot" class="status-dot healthy"></span>
+          <span data-i="tab_infra_short">Infra</span>
+        </button>
         <span id="aiPill" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border" style="border-color:var(--border)"></span>
         <button id="exportBtn" class="btn btn-ghost hidden sm:flex" title="CSV"><span class="ic" data-ic="download"></span><span data-i="export">Експорт</span></button>
         <select id="lang" class="select-field" style="width:auto;padding:8px 12px;font-size:13px">
@@ -957,10 +964,32 @@ tailwind.config = {
         </div>
       </section>
 
+      <section id="campaignsPanel" class="page-panel hidden"><div id="campaignsBody"></div></section>
+      <section id="analyticsPanel" class="page-panel hidden"><div id="analyticsBody"></div></section>
+      <section id="infraPanel" class="page-panel hidden"><div id="infraBody"></div></section>
+
       <div id="searchPanel">
 
+      <div class="search-hero">
+        <h3 data-i="search_hero_title">AI Lead Search</h3>
+        <p data-i="search_hero_sub">Discover B2B companies across 15+ sources</p>
+      </div>
+
+      <div id="searchPipeline" class="pipeline hidden" aria-live="polite">
+        <div class="pipeline-steps">
+          <div class="pipeline-step" data-stage="queued"><span class="pipeline-dot"></span><span data-i="pipe_queued">Queued</span></div>
+          <div class="pipeline-step" data-stage="fetching"><span class="pipeline-dot"></span><span data-i="pipe_fetching">Fetching</span></div>
+          <div class="pipeline-step" data-stage="enriching"><span class="pipeline-dot"></span><span data-i="pipe_enriching">Enriching</span></div>
+          <div class="pipeline-step" data-stage="dedupe"><span class="pipeline-dot"></span><span data-i="pipe_dedupe">Deduplicating</span></div>
+          <div class="pipeline-step" data-stage="analyzing"><span class="pipeline-dot"></span><span data-i="pipe_analyzing">Analyzing</span></div>
+          <div class="pipeline-step" data-stage="done"><span class="pipeline-dot"></span><span data-i="pipe_done">Complete</span></div>
+        </div>
+        <div class="pipeline-bar"><div id="pipelineBarFill" class="pipeline-bar-fill" style="width:0%"></div></div>
+        <div class="pipeline-meta"><span id="pipelineStatus">—</span><span id="pipelineElapsed">0:00</span></div>
+      </div>
+
       <!-- Command search -->
-      <div class="glass-card cmd-float">
+      <div class="glass-card cmd-float search-card">
         <div class="cmd-head">
           <div class="cmd-title"><span style="color:var(--accent)">⌘</span> <span data-i="cmd_title">Command search</span> <kbd>K</kbd></div>
           <span id="srcHint" class="text-muted" style="font-size:12px"></span>
@@ -1036,11 +1065,10 @@ tailwind.config = {
 
       <div class="lg-grid">
       <!-- Map sidebar -->
-      <aside style="position:sticky;top:88px;align-self:start" class="map-aside">
+      <aside style="position:sticky;top:88px;align-self:start" class="map-aside" id="mapAside">
         <div class="glass-card surface-elevated" style="padding:20px;display:flex;flex-direction:column;gap:12px">
-          <div style="display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-tertiary)">
-            <span class="ic" data-ic="pin"></span><span data-i="map_title">Пошук на карті</span>
-          </div>
+          <button type="button" class="map-toggle" id="mapToggle" aria-expanded="true"><span class="ic" data-ic="chevron"></span><span data-i="map_title">Пошук на карті</span></button>
+          <div data-map-controls>
           <p class="text-muted" style="font-size:12px;line-height:1.5" data-i="map_hint">Клікніть на карті, щоб обрати точку.</p>
           <div id="map"></div>
           <div style="display:flex;align-items:center;gap:12px">
@@ -1048,6 +1076,7 @@ tailwind.config = {
             <span id="radiusLabel" class="text-muted" style="font-size:12px;width:56px;text-align:right;font-variant-numeric:tabular-nums">2.0 km</span>
           </div>
           <button id="runMap" class="btn btn-primary" style="width:100%"><span class="ic" data-ic="pin"></span><span data-i="search_here">Шукати тут</span></button>
+          </div>
         </div>
       </aside>
 
@@ -1168,12 +1197,18 @@ tailwind.config = {
 <div id="leadModal" class="overlay-root hidden">
   <div id="leadModalBg" class="modal-backdrop"></div>
   <div class="modal-layer">
-    <div class="modal-panel" style="width:100%;max-width:520px;max-height:88vh;overflow-y:auto">
+    <div class="modal-panel lm-wide" style="width:100%;max-width:1100px;max-height:88vh;overflow:hidden">
       <header style="position:sticky;top:0;padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--bg-1);z-index:10">
-        <div style="min-width:0;display:flex;align-items:center;gap:12px" id="lmHead"></div>
-        <button id="lmClose" class="btn-icon shrink-0"><span class="ic" data-ic="close"></span></button>
+        <div style="min-width:0;display:flex;align-items:center;gap:12px;flex:1" id="lmHead"></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button type="button" id="lmWriteHead" class="btn btn-primary" style="padding:8px 14px;font-size:12px" data-i="write_msg">Outreach</button>
+          <button id="lmClose" class="btn-icon shrink-0"><span class="ic" data-ic="close"></span></button>
+        </div>
       </header>
-      <div style="padding:24px;display:flex;flex-direction:column;gap:16px" id="lmBody"></div>
+      <div class="lm-body-cols" id="lmBody">
+        <div id="lmLeft" class="lm-col"></div>
+        <div id="lmRight" class="lm-col"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1271,11 +1306,9 @@ let statusFilter='all';
 $('#statusFilter').onchange=e=>{statusFilter=e.target.value;renderCurrent();};
 $('#textSearch').oninput=e=>{textFilter=e.target.value.trim();renderCurrent();};
 $$('.tabbtn').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;paintTabs();
-  $('#agentPanel').classList.toggle('hidden',tab!=='agent');
-  $('#searchPanel').classList.toggle('hidden',tab==='agent');
   $('#statusFilter').classList.toggle('hidden',tab!=='saved');
   $('#textSearch').classList.toggle('hidden',tab==='search');
-  if(tab==='saved')loadSaved();else if(tab==='all')loadAll();else if(tab==='agent')initAgent();else renderCurrent();});
+  if(tab==='saved')loadSaved();else if(tab==='all')loadAll();else if(tab==='agent')initAgent();else if(tab==='search')renderCurrent();});
 async function loadAll(){const r=await fetch('/api/leads?limit=3000');allLeads=await r.json();refreshAllCount();renderCurrent();}
 async function refreshAllCount(){try{const d=await (await fetch('/api/leads?limit=3000')).json();$('#allCount').textContent=d.length?d.length:'';allLeads=d;}catch(e){}}
 
