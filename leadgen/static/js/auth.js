@@ -20,7 +20,11 @@ const AUTH_I18N = {
     auth_have_account: 'Вже є акаунт?',
     auth_login_link: 'Увійти',
     auth_err_password_mismatch: 'Паролі не збігаються',
+    auth_err_email_taken: 'Цей email вже зареєстровано. Увійдіть або скиньте пароль.',
+    auth_err_invalid_credentials: 'Невірний email або пароль',
     auth_err_generic: 'Помилка. Спробуйте ще раз.',
+    auth_loading: 'Завантаження…',
+    auth_submitting: 'Зачекайте…',
     auth_logout: 'Вийти',
   },
   ru: {
@@ -40,7 +44,11 @@ const AUTH_I18N = {
     auth_have_account: 'Уже есть аккаунт?',
     auth_login_link: 'Войти',
     auth_err_password_mismatch: 'Пароли не совпадают',
+    auth_err_email_taken: 'Этот email уже зарегистрирован. Войдите в аккаунт.',
+    auth_err_invalid_credentials: 'Неверный email или пароль',
     auth_err_generic: 'Ошибка. Попробуйте снова.',
+    auth_loading: 'Загрузка…',
+    auth_submitting: 'Подождите…',
     auth_logout: 'Выйти',
   },
   en: {
@@ -60,7 +68,11 @@ const AUTH_I18N = {
     auth_have_account: 'Already have an account?',
     auth_login_link: 'Sign in',
     auth_err_password_mismatch: 'Passwords do not match',
+    auth_err_email_taken: 'This email is already registered. Please sign in.',
+    auth_err_invalid_credentials: 'Invalid email or password',
     auth_err_generic: 'Something went wrong. Try again.',
+    auth_loading: 'Loading…',
+    auth_submitting: 'Please wait…',
     auth_logout: 'Log out',
   },
 };
@@ -125,10 +137,37 @@ function showToast(msg, type) {
   showToast._t = setTimeout(() => el.classList.remove('visible'), 3200);
 }
 
+function mapAuthError(msg) {
+  if (!msg || typeof msg !== 'string') return authT('auth_err_generic');
+  const lower = msg.toLowerCase();
+  if (lower.includes('already registered') || lower.includes('email already')) {
+    return authT('auth_err_email_taken');
+  }
+  if (lower.includes('invalid email or password')) {
+    return authT('auth_err_invalid_credentials');
+  }
+  if (lower.startsWith('http ')) return authT('auth_err_generic');
+  return msg;
+}
+
 async function apiJson(path, opts) {
-  const r = await fetch(path, Object.assign({}, opts, {
-    headers: authHeaders((opts && opts.headers) || {}),
-  }));
+  const timeoutMs = path.includes('/api/auth/') ? 90000 : 60000;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  let r;
+  try {
+    r = await fetch(path, Object.assign({}, opts, {
+      headers: authHeaders((opts && opts.headers) || {}),
+      signal: ctrl.signal,
+    }));
+  } catch (e) {
+    clearTimeout(timer);
+    if (e && e.name === 'AbortError') {
+      throw new Error(authT('auth_submitting'));
+    }
+    throw e;
+  }
+  clearTimeout(timer);
   const data = await r.json().catch(() => ({}));
   if (r.status === 401 && !path.startsWith('/api/auth/')) {
     clearSession();
@@ -139,7 +178,7 @@ async function apiJson(path, opts) {
   }
   if (!r.ok) {
     const msg = data.error || data.detail || `HTTP ${r.status}`;
-    throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    throw new Error(mapAuthError(typeof msg === 'string' ? msg : JSON.stringify(msg)));
   }
   return data;
 }
@@ -152,6 +191,8 @@ function showAuthError(msg) {
 }
 
 async function initAuthPage(mode) {
+  const boot = document.getElementById('authBoot');
+  if (boot) boot.classList.add('hidden');
   paintAuthI18n();
   try {
     const st = await fetch('/api/auth/status').then((r) => r.json());
@@ -159,8 +200,12 @@ async function initAuthPage(mode) {
       window.location.href = '/';
       return;
     }
-    if (mode === 'login' && !st.auth_required && !st.has_users) {
+    if (mode === 'login' && !st.has_users) {
       window.location.href = '/register';
+      return;
+    }
+    if (mode === 'register' && st.has_users) {
+      window.location.href = '/login';
       return;
     }
   } catch (e) { /* offline */ }
@@ -175,14 +220,20 @@ async function initAuthPage(mode) {
 
     const email = form.email.value.trim();
     const password = form.password.value;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const prevLabel = submitBtn ? submitBtn.textContent : '';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = authT('auth_submitting');
+    }
 
-    if (mode === 'register') {
-      const password2 = form.password2.value;
-      if (password !== password2) {
-        showAuthError(authT('auth_err_password_mismatch'));
-        return;
-      }
-      try {
+    try {
+      if (mode === 'register') {
+        const password2 = form.password2.value;
+        if (password !== password2) {
+          showAuthError(authT('auth_err_password_mismatch'));
+          return;
+        }
         const data = await apiJson('/api/auth/register', {
           method: 'POST',
           body: JSON.stringify({
@@ -193,13 +244,9 @@ async function initAuthPage(mode) {
         });
         setSession(data.token, data.user);
         window.location.href = '/';
-      } catch (e) {
-        showAuthError(e.message || authT('auth_err_generic'));
+        return;
       }
-      return;
-    }
 
-    try {
       const data = await apiJson('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
@@ -208,6 +255,11 @@ async function initAuthPage(mode) {
       window.location.href = '/';
     } catch (e) {
       showAuthError(e.message || authT('auth_err_generic'));
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = prevLabel || authT(mode === 'login' ? 'auth_sign_in' : 'auth_sign_up');
+      }
     }
   });
 }
@@ -215,7 +267,6 @@ async function initAuthPage(mode) {
 async function guardDashboard() {
   try {
     const st = await fetch('/api/auth/status', { headers: authHeaders() }).then((r) => r.json());
-    if (!st.auth_required) return st;
     if (!st.authenticated) {
       window.location.href = st.has_users ? '/login' : '/register';
       return st;

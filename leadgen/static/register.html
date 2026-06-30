@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Register — LeadGen Autopilot</title>
+<style>
+  html,body{margin:0;min-height:100%;background:#0a0a0f;color:#e8e8ef;font-family:Inter,system-ui,sans-serif}
+  #authBoot{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0a0a0f;color:#9ca3af;font-size:14px;z-index:9999}
+  #authBoot.hidden{display:none}
+</style>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23050505'/%3E%3Cpath d='M4 14h4l2-5 4 10 2-5h4' fill='none' stroke='%237C5CFF' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,6 +19,7 @@
 <link rel="stylesheet" href="/static/css/auth.css"/>
 </head>
 <body>
+<div id="authBoot">Завантаження…</div>
 <div class="app-bg"><div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div></div>
 <main class="auth-page">
   <div class="auth-card">

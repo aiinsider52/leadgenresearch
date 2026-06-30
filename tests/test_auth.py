@@ -61,6 +61,12 @@ class AuthFlowTest(unittest.TestCase):
         self.assertEqual(r.status_code, 302)
         self.assertIn("/login", r.headers.get("location", ""))
 
+    def test_dashboard_redirects_to_register_when_no_users(self) -> None:
+        os.environ["REQUIRE_AUTH"] = "false"
+        r = self.client.get("/", follow_redirects=False)
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("/register", r.headers.get("location", ""))
+
     def test_token_roundtrip(self) -> None:
         token = auth.make_token("user-abc")
         self.assertEqual(auth.verify_token(token), "user-abc")

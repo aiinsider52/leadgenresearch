@@ -134,8 +134,10 @@ async def auth_middleware(request: Request, call_next):
             request.state.user_id = user_id
         return await call_next(request)
 
+    if auth.is_dashboard_path(path) and not user_id:
+        return RedirectResponse(auth.auth_landing_path(), status_code=302)
     if auth.auth_required() and not user_id:
-        return RedirectResponse("/login", status_code=302)
+        return RedirectResponse(auth.auth_landing_path(), status_code=302)
     if user_id:
         request.state.user_id = user_id
     return await call_next(request)
@@ -651,8 +653,19 @@ def api_auth_register(req: AuthRegisterRequest):
         user = users.create_user(req.email, req.password, req.name)
     except ValueError as exc:
         return JSONResponse({"detail": str(exc)}, status_code=400)
-    token = auth.make_token(user["id"])
-    return _session_response({"ok": True, "token": token, "user": user}, token)
+    except Exception as exc:
+        import logging
+
+        logging.getLogger(__name__).exception("register failed")
+        return JSONResponse({"detail": "Registration failed. Try again or sign in."}, status_code=500)
+    try:
+        token = auth.make_token(user["id"])
+        return _session_response({"ok": True, "token": token, "user": user}, token)
+    except Exception:
+        import logging
+
+        logging.getLogger(__name__).exception("register session failed")
+        return JSONResponse({"detail": "Account created but sign-in failed. Try logging in."}, status_code=500)
 
 
 @app.post("/api/auth/login")

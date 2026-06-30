@@ -56,6 +56,17 @@ def auth_required() -> bool:
     return count_users() > 0
 
 
+def auth_landing_path() -> str:
+    """Where unauthenticated visitors should land."""
+    from .users import count_users
+
+    return "/register" if count_users() == 0 else "/login"
+
+
+def is_dashboard_path(path: str) -> bool:
+    return path in ("/", "/index.html")
+
+
 def is_public_path(path: str) -> bool:
     if path in _PUBLIC_PATHS:
         return True
