@@ -44,3 +44,4 @@ __pycache__/
 .venv/
 dist/
 node_modules/
+public/static/

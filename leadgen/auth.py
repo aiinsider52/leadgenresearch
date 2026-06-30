@@ -10,7 +10,7 @@ from fastapi import HTTPException, Request
 
 from .config import get
 
-_PUBLIC_PATHS = {"/", "/api/categories", "/api/ai_status"}
+_PUBLIC_PATHS = {"/", "/api/categories", "/api/ai_status", "/api/health"}
 
 
 def _valid_key(provided: str | None) -> bool:

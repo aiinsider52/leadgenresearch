@@ -5,6 +5,7 @@ Run:  uvicorn leadgen.app:app --reload --host 127.0.0.1 --port 8091
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import csv
@@ -87,9 +88,13 @@ STATIC_DIR = Path(__file__).with_name("static")
 
 @app.on_event("startup")
 def sync_structured_storage() -> None:
-    init_schema()
-    rows = load_leads(5000)
-    storage.sync_leads([(service._lead_id(row), row) for row in rows])
+    try:
+        init_schema()
+        rows = load_leads(5000)
+        storage.sync_leads([(service._lead_id(row), row) for row in rows])
+    except Exception as exc:
+        import logging
+        logging.getLogger("leadgen").warning("startup sync skipped: %s", exc)
 
 
 def _decorate(leads: list[dict]) -> list[dict]:
@@ -740,4 +745,12 @@ def api_db_status():
     return JSONResponse({"backend": db_backend()})
 
 
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+@app.get("/api/health")
+def api_health():
+    return JSONResponse({"ok": True, "vercel": bool(os.environ.get("VERCEL"))})
+
+
+# Vercel serves /static/** from public/static/ (see scripts/vercel_build.sh).
+# StaticFiles mount breaks on serverless — skip when VERCEL=1.
+if not os.environ.get("VERCEL"):
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
