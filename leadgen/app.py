@@ -11,13 +11,21 @@ import csv
 import io
 from typing import List, Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from . import llm, service, usage
+from . import llm, service, usage, storage, auth
+from . import brave
+from .enrich.brave_people import enrich_people_brave
+from .enrich.brave_signals import enrich_news_signals
+from .enrich.brave_intent import enrich_intent_signals
+from .enrich.contact_quality import assess_contacts
 from .analyze.company import analyze
 from .analyze.qualify import qualify
+from .analyze.scoring import score_lead
 from .catalog.ai_recommender import ai_recommend
 from .i18n import LANGS
 from .outreach.writer import write_message
@@ -42,10 +50,45 @@ from .service import (
     stats,
     update_favorite,
 )
+from .pipeline_metrics import recent as recent_pipeline_metrics
+from .history import recent as recent_history
 from .sources.osm import CATEGORY_TAGS
+from .agent import session as chat_session
+from .agent.brain import run_agent, run_agent_stream
+from . import campaigns
+from .outreach import queue as outreach_queue
+from .outreach.sender import process_queue, send_one
+from .outreach.sequences import start_sequence, list_sequences
+from .outreach.reply_handler import handle_reply, recent_replies
+from .signals.listeners import poll_signals, list_recent_signals
+from . import worker
+from .db import init_schema, backend as db_backend
 
-app = FastAPI(title="LeadGen")
+app = FastAPI(title="LeadGen Autopilot")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    if request.url.path.startswith("/api/") and request.url.path not in (
+        "/api/ai_status", "/api/categories",
+    ):
+        auth.check_request(request)
+    return await call_next(request)
 INDEX_PATH = Path(__file__).with_name("static") / "index.html"
+STATIC_DIR = Path(__file__).with_name("static")
+
+
+@app.on_event("startup")
+def sync_structured_storage() -> None:
+    init_schema()
+    rows = load_leads(5000)
+    storage.sync_leads([(service._lead_id(row), row) for row in rows])
 
 
 def _decorate(leads: list[dict]) -> list[dict]:
@@ -77,6 +120,10 @@ class FindRequest(BaseModel):
     require_website: bool = False
     source: str = "osm"
     ig_mode: str = "business"
+    discover_websites: bool = True
+    brave_people: bool = True
+    brave_news: bool = True
+    brave_intent: bool = True
     filters: Filters = Filters()
 
 
@@ -122,7 +169,10 @@ def api_find(req: FindRequest):
     try:
         res = find_leads(req.category, req.city, country=req.country, limit=req.limit,
                          lang=lang, enrich=req.enrich, require_website=req.require_website,
-                         source=req.source, ig_mode=req.ig_mode)
+                         source=req.source, ig_mode=req.ig_mode,
+                         discover_websites=req.discover_websites,
+                         brave_people=req.brave_people, brave_news=req.brave_news,
+                         brave_intent=req.brave_intent)
     except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
     return JSONResponse(_apply_filters(_decorate([l.to_dict() for l in res]), req.filters))
@@ -213,6 +263,10 @@ class FindMultiRequest(BaseModel):
     enrich: bool = True
     source: str = "osm"
     ig_mode: str = "business"
+    discover_websites: bool = True
+    brave_people: bool = True
+    brave_news: bool = True
+    brave_intent: bool = True
     filters: Filters = Filters()
 
 
@@ -222,7 +276,10 @@ def api_find_multi(req: FindMultiRequest):
     cities = req.cities or UA_MAJOR_CITIES
     try:
         res = find_leads_multi(req.category, cities, country=req.country, limit=req.limit,
-                               lang=lang, enrich=req.enrich, source=req.source, ig_mode=req.ig_mode)
+                               lang=lang, enrich=req.enrich, source=req.source, ig_mode=req.ig_mode,
+                               discover_websites=req.discover_websites,
+                               brave_people=req.brave_people, brave_news=req.brave_news,
+                               brave_intent=req.brave_intent)
     except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
     return JSONResponse(_apply_filters(_decorate([l.to_dict() for l in res]), req.filters))
@@ -238,6 +295,10 @@ class FindExpandedRequest(BaseModel):
     enrich: bool = True
     source: str = "osm"
     ig_mode: str = "business"
+    discover_websites: bool = True
+    brave_people: bool = True
+    brave_news: bool = True
+    brave_intent: bool = True
     filters: Filters = Filters()
 
 
@@ -247,7 +308,10 @@ def api_find_expanded(req: FindExpandedRequest):
     try:
         res = find_leads_expanded(req.category, req.city, country=req.country, limit=req.limit,
                                   lang=lang, enrich=req.enrich, source=req.source,
-                                  ig_mode=req.ig_mode, cities=(req.cities or None))
+                                  ig_mode=req.ig_mode, cities=(req.cities or None),
+                                  discover_websites=req.discover_websites,
+                                  brave_people=req.brave_people, brave_news=req.brave_news,
+                                  brave_intent=req.brave_intent)
     except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
     return JSONResponse(_apply_filters(_decorate([l.to_dict() for l in res]), req.filters))
@@ -258,9 +322,64 @@ def api_stats():
     return JSONResponse(stats())
 
 
+@app.get("/api/pipeline_metrics")
+def api_pipeline_metrics(limit: int = 50):
+    return JSONResponse(recent_pipeline_metrics(limit))
+
+
+@app.get("/api/history")
+def api_history(lead_id: Optional[str] = None, limit: int = 100):
+    return JSONResponse(recent_history(lead_id, limit))
+
+
+@app.get("/api/storage/status")
+def api_storage_status():
+    return JSONResponse(storage.status())
+
+
 @app.get("/api/usage")
 def api_usage():
     return JSONResponse(usage.summary())
+
+
+@app.get("/api/brave/status")
+def api_brave_status():
+    return JSONResponse(brave.status())
+
+
+class BraveEnrichRequest(BaseModel):
+    lead: dict
+    people: bool = True
+    news: bool = True
+    intent: bool = True
+
+
+@app.post("/api/brave/enrich")
+def api_brave_enrich(req: BraveEnrichRequest):
+    if not brave.available():
+        return JSONResponse({"error": "BRAVE_SEARCH_API_KEY not set"}, status_code=400)
+    lead = req.lead
+    company = lead.get("company", {}) or {}
+    enrichment = dict(lead.get("enrichment", {}) or {})
+    if req.people:
+        enrichment = enrich_people_brave(
+            enrichment, company.get("name", ""), company.get("website"), max_queries=4
+        )
+    if req.news:
+        enrichment = enrich_news_signals(enrichment, company.get("name", ""))
+    if req.intent:
+        enrichment = enrich_intent_signals(enrichment, company.get("name", ""), company.get("website"))
+    enrichment = assess_contacts(enrichment, company.get("website"))
+    company["sources"] = sorted(set(company.get("sources") or []) | {"brave_web"})
+    enriched = {**lead, "company": company, "enrichment": enrichment,
+                "score": score_lead(company, enrichment)}
+    service.save_leads([service.Lead(
+        company=company, enrichment=enrichment,
+        automations=enriched.get("automations") or [],
+        templates=enriched.get("templates") or [],
+        score=enriched["score"], lang=enriched.get("lang", "uk"),
+    )])
+    return JSONResponse(_decorate([enriched])[0])
 
 
 @app.get("/api/icp")
@@ -326,7 +445,10 @@ def api_run_schedules():
 
 @app.get("/api/ai_status")
 def api_ai_status():
-    return JSONResponse(llm.status())
+    from .config import get
+    st = llm.status()
+    st["waterfall"] = get("USE_WATERFALL", "").lower() in ("1", "true", "yes")
+    return JSONResponse(st)
 
 
 @app.get("/api/export.csv")
@@ -358,6 +480,223 @@ def api_export(scope: str = "saved"):
     )
 
 
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return HTMLResponse(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#0A0A0F"/><path d="M4 14h4l2-5 4 10 2-5h4" fill="none" stroke="#E8B84B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        media_type="image/svg+xml",
+    )
+
+
 @app.get("/", response_class=HTMLResponse)
-def index() -> str:
-    return INDEX_PATH.read_text(encoding="utf-8")
+def index() -> HTMLResponse:
+    return HTMLResponse(
+        INDEX_PATH.read_text(encoding="utf-8"),
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache"},
+    )
+
+
+# ---- Agent chat ----
+
+class ChatRequest(BaseModel):
+    message: str
+    session_id: Optional[str] = None
+    lang: str = "uk"
+
+
+@app.post("/api/chat")
+def api_chat(req: ChatRequest):
+    lang = req.lang if req.lang in LANGS else "uk"
+    sid = req.session_id or chat_session.create_session(lang)
+    reply = run_agent(sid, req.message, lang=lang)
+    return JSONResponse({"session_id": sid, "reply": reply})
+
+
+@app.post("/api/chat/stream")
+def api_chat_stream(req: ChatRequest):
+    lang = req.lang if req.lang in LANGS else "uk"
+    sid = req.session_id or chat_session.create_session(lang)
+    return StreamingResponse(
+        run_agent_stream(sid, req.message, lang=lang),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Session-Id": sid},
+    )
+
+
+@app.get("/api/chat/sessions")
+def api_chat_sessions(limit: int = 20):
+    return JSONResponse(chat_session.list_sessions(limit))
+
+
+@app.get("/api/chat/{session_id}")
+def api_chat_history(session_id: str):
+    sess = chat_session.get_session(session_id)
+    if not sess:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return JSONResponse(sess)
+
+
+# ---- Campaigns ----
+
+class CampaignCreateRequest(BaseModel):
+    name: str
+    category: str
+    cities: List[str]
+    source: str = "all_sources"
+    limit_per_run: int = 50
+    cron: str = "0 7 * * *"
+    auto_outreach: bool = False
+    expand_niche: bool = True
+    lang: str = "uk"
+    discover_websites: bool = True
+    brave_people: bool = True
+    brave_news: bool = True
+    brave_intent: bool = True
+
+
+@app.get("/api/campaigns")
+def api_list_campaigns():
+    from .campaigns import CRON_PRESETS
+    return JSONResponse({"campaigns": campaigns.list_campaigns(), "cron_presets": CRON_PRESETS})
+
+
+@app.post("/api/campaigns")
+def api_create_campaign(req: CampaignCreateRequest):
+    cid = campaigns.create_campaign(
+        req.name, req.category, req.cities,
+        source=req.source, limit_per_run=req.limit_per_run,
+        cron=req.cron, auto_outreach=req.auto_outreach,
+        expand_niche=req.expand_niche, lang=req.lang,
+        discover_websites=req.discover_websites,
+        brave_people=req.brave_people, brave_news=req.brave_news,
+        brave_intent=req.brave_intent,
+    )
+    return JSONResponse({"campaign_id": cid})
+
+
+@app.post("/api/campaigns/{campaign_id}/run")
+def api_run_campaign(campaign_id: str):
+    return JSONResponse(campaigns.run_campaign(campaign_id))
+
+
+@app.post("/api/campaigns/{campaign_id}/pause")
+def api_pause_campaign(campaign_id: str):
+    return JSONResponse({"paused": campaigns.pause_campaign(campaign_id)})
+
+
+@app.post("/api/campaigns/{campaign_id}/resume")
+def api_resume_campaign(campaign_id: str):
+    return JSONResponse({"resumed": campaigns.resume_campaign(campaign_id)})
+
+
+@app.delete("/api/campaigns/{campaign_id}")
+def api_delete_campaign(campaign_id: str):
+    return JSONResponse({"deleted": campaigns.delete_campaign(campaign_id)})
+
+
+@app.post("/api/campaigns/run_due")
+def api_run_due_campaigns():
+    return JSONResponse({"results": campaigns.run_due_campaigns()})
+
+
+@app.get("/api/campaigns/runs")
+def api_campaign_runs(limit: int = 20):
+    return JSONResponse(campaigns.recent_runs(limit))
+
+
+# ---- Outreach queue ----
+
+@app.get("/api/outreach/queue")
+def api_outreach_queue(status: Optional[str] = None, limit: int = 50):
+    return JSONResponse(outreach_queue.list_queue(status, limit))
+
+
+@app.post("/api/outreach/send/{queue_id}")
+def api_outreach_send_one(queue_id: str):
+    return JSONResponse(send_one(queue_id))
+
+
+@app.post("/api/outreach/process")
+def api_outreach_process(limit: int = 10):
+    return JSONResponse(process_queue(limit=limit))
+
+
+class SequenceRequest(BaseModel):
+    lead_id: str
+    channel: str = "email"
+    lang: str = "uk"
+
+
+@app.post("/api/outreach/sequence")
+def api_outreach_sequence(req: SequenceRequest):
+    lang = req.lang if req.lang in LANGS else "uk"
+    sid = start_sequence(req.lead_id, channel=req.channel, lang=lang)
+    return JSONResponse({"sequence_id": sid})
+
+
+@app.get("/api/outreach/sequences")
+def api_outreach_sequences():
+    return JSONResponse(list_sequences())
+
+
+class ReplyRequest(BaseModel):
+    lead_id: str
+    reply_text: str
+    lang: str = "uk"
+
+
+@app.post("/api/outreach/reply")
+def api_outreach_reply(req: ReplyRequest):
+    lang = req.lang if req.lang in LANGS else "uk"
+    return JSONResponse(handle_reply(req.lead_id, req.reply_text, lang=lang))
+
+
+@app.get("/api/outreach/replies")
+def api_outreach_replies(limit: int = 50):
+    return JSONResponse(recent_replies(limit))
+
+
+# ---- Signals ----
+
+@app.post("/api/signals/poll")
+def api_signals_poll():
+    return JSONResponse(poll_signals())
+
+
+@app.get("/api/signals/recent")
+def api_signals_recent(limit: int = 20):
+    return JSONResponse(list_recent_signals(limit))
+
+
+# ---- Background jobs ----
+
+class JobRequest(BaseModel):
+    kind: str
+    payload: dict = {}
+
+
+@app.post("/api/jobs")
+def api_submit_job(req: JobRequest):
+    jid = worker.submit(req.kind, req.payload)
+    return JSONResponse({"job_id": jid})
+
+
+@app.get("/api/jobs/{job_id}")
+def api_get_job(job_id: str):
+    job = worker.get_job(job_id)
+    if not job:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return JSONResponse(job)
+
+
+@app.get("/api/jobs")
+def api_list_jobs(limit: int = 20):
+    return JSONResponse(worker.list_jobs(limit))
+
+
+@app.get("/api/db/status")
+def api_db_status():
+    return JSONResponse({"backend": db_backend()})
+
+
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
