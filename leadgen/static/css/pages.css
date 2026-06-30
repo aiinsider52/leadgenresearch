@@ -7,17 +7,36 @@
 #infraPanel .infra-overall-val {
   font-family: var(--font-display); font-size: 32px; font-weight: 300;
 }
-#analyticsPanel .exec-kpi-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+#analyticsPanel .analytics-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1100px;
+}
+#analyticsPanel .analytics-dashboard > .grid {
+  display: grid;
   gap: 12px;
 }
-#analyticsPanel .exec-kpi {
-  padding: 20px; text-align: center;
-  border-radius: var(--radius-lg); background: var(--bg-2); border: 1px solid var(--border);
+#analyticsPanel .analytics-dashboard > .grid.grid-cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
-#analyticsPanel .exec-kpi-val {
-  font-family: var(--font-display); font-size: 28px; font-weight: 300;
-  color: var(--accent-hover);
+#analyticsPanel .analytics-dashboard .chart-panel {
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+}
+#analyticsPanel .analytics-dashboard .border-t {
+  padding-top: 16px;
+  margin-top: 4px;
+}
+@media (min-width: 640px) {
+  #analyticsPanel .analytics-dashboard > .grid.sm\:grid-cols-5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  #analyticsPanel .analytics-dashboard > .grid.sm\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 #campaignsPanel .camp-run-timeline {
   margin-top: 20px; padding: 16px;
@@ -25,6 +44,27 @@
 }
 #searchPanel .cmd-float { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
 #searchPanel .cmd-float::before { display: none !important; }
+#searchPanel .search-card {
+  padding: 24px !important;
+  margin-bottom: 24px;
+  background: var(--bg-2) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+#searchPanel .search-hero { margin-bottom: 8px; }
+#searchPanel .lg-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 300px) 1fr;
+  gap: 24px;
+  align-items: start;
+}
+#searchPanel #results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+.sidebar-footer { display: none; }
 
 .render-cap-footer {
   grid-column: 1 / -1; text-align: center;
