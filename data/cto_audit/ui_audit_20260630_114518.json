@@ -1,0 +1,93 @@
+[
+  {
+    "step": "dashboard_load",
+    "ok": true,
+    "detail": "/Users/vladyslav.katash/Research/leadgen/data/cto_audit/screenshots/01_dashboard_dark_1440.png",
+    "screenshot": "",
+    "ts": "2026-06-30T09:44:51.765645"
+  },
+  {
+    "step": "tab_all",
+    "ok": true,
+    "detail": "/Users/vladyslav.katash/Research/leadgen/data/cto_audit/screenshots/02_tab_all.png",
+    "screenshot": "",
+    "ts": "2026-06-30T09:44:58.027063"
+  },
+  {
+    "step": "tab_saved",
+    "ok": true,
+    "detail": "/Users/vladyslav.katash/Research/leadgen/data/cto_audit/screenshots/02_tab_saved.png",
+    "screenshot": "",
+    "ts": "2026-06-30T09:44:59.496276"
+  },
+  {
+    "step": "tab_agent",
+    "ok": true,
+    "detail": "/Users/vladyslav.katash/Research/leadgen/data/cto_audit/screenshots/02_tab_agent.png",
+    "screenshot": "",
+    "ts": "2026-06-30T09:45:00.351076"
+  },
+  {
+    "step": "tab_search",
+    "ok": true,
+    "detail": "/Users/vladyslav.katash/Research/leadgen/data/cto_audit/screenshots/02_tab_search.png",
+    "screenshot": "",
+    "ts": "2026-06-30T09:45:01.311557"
+  },
+  {
+    "step": "search_osm",
+    "ok": true,
+    "detail": "cards=4",
+    "screenshot": "/Users/vladyslav.katash/Research/leadgen/data/cto_audit/screenshots/03_search_results.png",
+    "ts": "2026-06-30T09:45:02.041749"
+  },
+  {
+    "step": "lead_modal",
+    "ok": false,
+    "detail": "/Users/vladyslav.katash/Research/leadgen/data/cto_audit/screenshots/04_lead_modal.png",
+    "screenshot": "",
+    "ts": "2026-06-30T09:45:03.236051"
+  },
+  {
+    "step": "save_lead",
+    "ok": true,
+    "detail": "/Users/vladyslav.katash/Research/leadgen/data/cto_audit/screenshots/05_after_save.png",
+    "screenshot": "",
+    "ts": "2026-06-30T09:45:04.168435"
+  },
+  {
+    "step": "analytics_modal",
+    "ok": true,
+    "detail": "/Users/vladyslav.katash/Research/leadgen/data/cto_audit/screenshots/06_analytics.png",
+    "screenshot": "",
+    "ts": "2026-06-30T09:45:05.632786"
+  },
+  {
+    "step": "cmd_palette",
+    "ok": true,
+    "detail": "/Users/vladyslav.katash/Research/leadgen/data/cto_audit/screenshots/07_cmd_palette.png",
+    "screenshot": "",
+    "ts": "2026-06-30T09:45:06.497285"
+  },
+  {
+    "step": "agent_chat",
+    "ok": true,
+    "detail": "/Users/vladyslav.katash/Research/leadgen/data/cto_audit/screenshots/08_agent_reply.png",
+    "screenshot": "",
+    "ts": "2026-06-30T09:45:15.488522"
+  },
+  {
+    "step": "light_theme",
+    "ok": true,
+    "detail": "/Users/vladyslav.katash/Research/leadgen/data/cto_audit/screenshots/09_light_theme.png",
+    "screenshot": "",
+    "ts": "2026-06-30T09:45:16.687693"
+  },
+  {
+    "step": "mobile_375",
+    "ok": true,
+    "detail": "/Users/vladyslav.katash/Research/leadgen/data/cto_audit/screenshots/10_mobile_375.png",
+    "screenshot": "",
+    "ts": "2026-06-30T09:45:18.773720"
+  }
+]

@@ -6,6 +6,7 @@ fastapi>=0.115
 uvicorn>=0.30
 aiogram>=3.13
 playwright>=1.40          # real Google Maps worker — run: playwright install chromium
+psycopg2-binary>=2.9      # optional PostgreSQL (DATABASE_URL)
 
 # Secrets (do NOT commit): set APIFY_TOKEN in data/secrets.env or env var
 # for the Apify Google Maps source (sources/apify_gmaps.py).

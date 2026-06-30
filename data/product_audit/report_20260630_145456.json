@@ -1,0 +1,2058 @@
+{
+  "run_id": "20260630_145456",
+  "started": "2026-06-30T12:54:56.345187+00:00",
+  "base_url": "http://127.0.0.1:8000",
+  "sitemap": {
+    "api_endpoints": [
+      {
+        "method": "GET",
+        "path": "/",
+        "status": 200,
+        "ms": 23.2,
+        "ok": true,
+        "body_preview": "<!doctype html>\n<html lang=\"uk\" class=\"dark\">\n<head>\n<meta charset=\"utf-8\">\n<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>LeadGen Autopilot</title>\n<link rel=\"icon\" href=\"data:image/svg+xml,%"
+      },
+      {
+        "method": "GET",
+        "path": "/api/categories",
+        "status": 200,
+        "ms": 2.8,
+        "ok": true,
+        "body_preview": "['agency', 'auto', 'beauty', 'clinic', 'construction', 'dental', 'education', 'fitness', 'hotel', 'law', 'real_estate', 'restaurant', 'retail']"
+      },
+      {
+        "method": "GET",
+        "path": "/api/leads",
+        "status": 200,
+        "ms": 260.0,
+        "ok": true,
+        "body_preview": "[{'company': {'name': 'DTEL-IX', 'category': 'agency', 'city': 'Київ', 'country': 'Ukraine', 'website': 'https://dtel-ix.net', 'phone': None, 'address': None, 'lat': 50.4355776, 'lon': 30.5004021, 'osm_id': 'node/7652102114', 'source': 'osm', 'sources': ['osm'], 'pre_score': {'score': 25, 'reasons':"
+      },
+      {
+        "method": "GET",
+        "path": "/api/saved",
+        "status": 200,
+        "ms": 9.9,
+        "ok": true,
+        "body_preview": "[{'company': {'name': 'ALINA FRENDIY', 'category': 'real_estate', 'city': 'Дніпро', 'country': 'Ukraine', 'website': 'https://t.me/frendiychannel', 'phone': None, 'address': None, 'lat': None, 'lon': None, 'osm_id': None, 'source': 'instagram', 'size_band': 'large'}, 'enrichment': {'emails': [], 'ph"
+      },
+      {
+        "method": "GET",
+        "path": "/api/stats",
+        "status": 200,
+        "ms": 197.3,
+        "ok": true,
+        "body_preview": "{'total_leads': 1000, 'saved': 27, 'with_email': 427, 'with_dm': 145, 'with_website': 725, 'verified_email': 310, 'with_intent': 285, 'funnel': {'new': 27, 'contacted': 0, 'replied': 0, 'client': 0, 'rejected': 0}, 'by_tier': {'cold': 525, 'hot': 228, 'warm': 247}, 'by_source': {'osm': 339, 'gmaps':"
+      },
+      {
+        "method": "GET",
+        "path": "/api/pipeline_metrics",
+        "status": 200,
+        "ms": 4.5,
+        "ok": true,
+        "body_preview": "[{'at': '2026-06-30T11:24:39.593771+00:00', 'category': 'web agency', 'city': 'Київ', 'country': 'Ukraine', 'source': 'all_sources', 'discovered': 65, 'deduped_before_enrichment': 63, 'unique': 8, 'website': 6, 'email': 2, 'phone': 7, 'decision_maker': 0, 'verified_email': 1, 'intent': 1, 'hot': 0},"
+      },
+      {
+        "method": "GET",
+        "path": "/api/history",
+        "status": 200,
+        "ms": 78.7,
+        "ok": true,
+        "body_preview": "[{'at': '2026-06-30T12:48:48.751362+00:00', 'lead_id': 'n:intertelecom|киів', 'event': 'refreshed', 'changes': {}, 'snapshot': {'name': 'Intertelecom', 'website': None, 'score': 0, 'emails': [], 'phones': [], 'decision_makers': [], 'signals': {}}}, {'at': '2026-06-30T12:48:48.755548+00:00', 'lead_id"
+      },
+      {
+        "method": "GET",
+        "path": "/api/storage/status",
+        "status": 200,
+        "ms": 23.6,
+        "ok": true,
+        "body_preview": "{'database': '/Users/vladyslav.katash/Research/leadgen/data/leadgen.db', 'leads': 2916, 'events': 8702}"
+      },
+      {
+        "method": "GET",
+        "path": "/api/usage",
+        "status": 200,
+        "ms": 3.1,
+        "ok": true,
+        "body_preview": "{'month': '2026-06', 'apify': {'runs': 209, 'usd': 25.08, 'cap': 25.0, 'blocked': True}, 'openai': {'calls': 112, 'usd': 1.12, 'cap': 10.0, 'blocked': False}, 'brave': {'calls': 1000, 'usd': 5.0, 'cap': 5.0, 'blocked': True}, 'apollo': {'calls': 0, 'usd': 0.0, 'cap': 20.0, 'blocked': False}, 'hunter"
+      },
+      {
+        "method": "GET",
+        "path": "/api/brave/status",
+        "status": 200,
+        "ms": 2.9,
+        "ok": true,
+        "body_preview": "{'available': True, 'cache_allowed': False, 'cache_dir': '/Users/vladyslav.katash/Research/leadgen/data/brave_cache'}"
+      },
+      {
+        "method": "GET",
+        "path": "/api/icp",
+        "status": 200,
+        "ms": 3.8,
+        "ok": true,
+        "body_preview": "{'icp': 'B2B SaaS та агенції в Україні, 10-50 співробітників, що активно ростуть'}"
+      },
+      {
+        "method": "GET",
+        "path": "/api/schedules",
+        "status": 200,
+        "ms": 2.7,
+        "ok": true,
+        "body_preview": "[]"
+      },
+      {
+        "method": "GET",
+        "path": "/api/ai_status",
+        "status": 200,
+        "ms": 2.4,
+        "ok": true,
+        "body_preview": "{'ai': True, 'model': 'gpt-4o', 'waterfall': False}"
+      },
+      {
+        "method": "GET",
+        "path": "/api/export.csv",
+        "status": 200,
+        "ms": 5.9,
+        "ok": true,
+        "body_preview": "name,category,city,address,website,rating,reviews,size,score,tier,emails,phones,linkedin,telegram,decision_makers,tags,status,notes\r\nALINA FRENDIY,real_estate,Дніпро,,https://t.me/frendiychannel,,,large,50,warm,,,,@frendiychannel,ALINA FRENDIY,,new,\r\nOdessa Jenkins,Coach,Одеса,,https://www.youtube.c"
+      },
+      {
+        "method": "GET",
+        "path": "/api/chat/sessions",
+        "status": 200,
+        "ms": 9.2,
+        "ok": true,
+        "body_preview": "[{'id': 'bad3dfb4-9c98-4d41-833b-1d455ebbefce', 'lang': 'uk', 'created_at': '2026-06-30T12:54:08.217213+00:00', 'messages': [{'role': 'user', 'content': 'hello', 'ts': '2026-06-30T12:54:08.225610+00:00'}], 'updated_at': '2026-06-30T12:54:08.225626+00:00'}, {'id': 'b159d959-b0a6-405c-b6a3-0535cb3cb0a"
+      },
+      {
+        "method": "GET",
+        "path": "/api/campaigns",
+        "status": 200,
+        "ms": 3.2,
+        "ok": true,
+        "body_preview": "{'campaigns': [{'id': '378d90ad-21c', 'name': 'Test camp', 'category': 'agency', 'cities': ['Київ'], 'source': 'all_sources', 'limit_per_run': 5, 'cron': '0 7 * * *', 'auto_outreach': False, 'lang': 'uk', 'icp': 'B2B SaaS та агенції в Україні, 10-50 співробітників, що активно ростуть', 'status': 'ac"
+      },
+      {
+        "method": "GET",
+        "path": "/api/campaigns/runs",
+        "status": 200,
+        "ms": 2.9,
+        "ok": true,
+        "body_preview": "[{'campaign_id': 'bd36adf4-16d', 'ts': '2026-06-30T12:34:48.613797+00:00', 'leads_found': 3, 'hot': 0, 'drafts_queued': 0, 'cities': ['Київ']}, {'campaign_id': 'a6882692-bce', 'ts': '2026-06-30T12:26:28.357657+00:00', 'leads_found': 3, 'hot': 0, 'drafts_queued': 0, 'cities': ['Київ']}, {'campaign_id"
+      },
+      {
+        "method": "GET",
+        "path": "/api/outreach/queue",
+        "status": 200,
+        "ms": 4.4,
+        "ok": true,
+        "body_preview": "[{'id': 'a225111b-d45', 'lead_id': 'test-lead', 'channel': 'email', 'subject': 'Hi', 'body': 'Hello', 'to_email': 'test@example.com', 'sequence_id': None, 'step': 0, 'status': 'pending', 'created_at': '2026-06-30T12:54:08.212495+00:00', 'sent_at': None, 'error': None}, {'id': '409b8536-228', 'lead_i"
+      },
+      {
+        "method": "GET",
+        "path": "/api/outreach/sequences",
+        "status": 200,
+        "ms": 2.6,
+        "ok": true,
+        "body_preview": "[]"
+      },
+      {
+        "method": "GET",
+        "path": "/api/outreach/replies",
+        "status": 200,
+        "ms": 2.6,
+        "ok": true,
+        "body_preview": "[]"
+      },
+      {
+        "method": "GET",
+        "path": "/api/signals/recent",
+        "status": 200,
+        "ms": 2.8,
+        "ok": true,
+        "body_preview": "[{'ts': '2026-06-30T12:34:12.688630+00:00', 'hits': 0, 'leads_created': 0, 'samples': []}, {'ts': '2026-06-30T12:25:52.518935+00:00', 'hits': 0, 'leads_created': 0, 'samples': []}, {'ts': '2026-06-30T12:15:27.627801+00:00', 'hits': 0, 'leads_created': 0, 'samples': []}, {'ts': '2026-06-30T11:42:56.4"
+      },
+      {
+        "method": "GET",
+        "path": "/api/jobs",
+        "status": 200,
+        "ms": 3.3,
+        "ok": true,
+        "body_preview": "[{'id': 'f76f9d11-fc1', 'kind': 'search', 'payload': {'endpoint': 'find', 'params': {'category': 'agency', 'city': 'Київ', 'limit': 3, 'source': 'osm', 'enrich': False, 'search_seq': None}, 'filters': {'email': False, 'phone': False, 'social': False, 'linkedin': False, 'telegram': False, 'dm': False"
+      },
+      {
+        "method": "GET",
+        "path": "/api/db/status",
+        "status": 200,
+        "ms": 4.2,
+        "ok": true,
+        "body_preview": "{'backend': 'sqlite'}"
+      }
+    ],
+    "html_element_ids": [
+      "${esc(l._id)}",
+      "${gradId}",
+      "${wrapId}",
+      "adv",
+      "advBtn",
+      "agentChat",
+      "agentForm",
+      "agentInput",
+      "agentPanel",
+      "agentProgress",
+      "agentProgressText",
+      "agentSession",
+      "agentToolsCount",
+      "agentTyping",
+      "agentWelcome",
+      "aiPill",
+      "allCities",
+      "allCount",
+      "braveIntent",
+      "braveNews",
+      "bravePeople",
+      "budgetBanner",
+      "bulkBar",
+      "bulkClear",
+      "bulkCount",
+      "bulkExport",
+      "bulkSave",
+      "campCreate",
+      "campCron",
+      "campExpand",
+      "campLimit",
+      "campList",
+      "campName",
+      "campOutreach",
+      "campRunDue",
+      "cancelSearch",
+      "category",
+      "cats",
+      "chartAreaGrad",
+      "chartGrad",
+      "city",
+      "cmdPalette",
+      "cmdPaletteBg",
+      "cmdPaletteInput",
+      "country",
+      "design-system",
+      "discoverWebsites",
+      "drawer",
+      "drawerBg",
+      "dwAnalysis",
+      "dwChannels",
+      "dwClose",
+      "dwCopy",
+      "dwFit",
+      "dwGen",
+      "dwMsg",
+      "dwName",
+      "dwPerson",
+      "dwRecs",
+      "dwSub",
+      "enrich",
+      "expandNiche",
+      "exportBtn",
+      "gaugeGrad",
+      "icpInput",
+      "icpMsg",
+      "icpSave",
+      "igModeSeg",
+      "igModeWrap",
+      "kpiEmail",
+      "kpiHot",
+      "kpiSaved",
+      "kpiStrip",
+      "kpiTotal",
+      "kpiTotalMeta",
+      "kpiTotalTrend",
+      "lang",
+      "leadModal",
+      "leadModalBg",
+      "limit",
+      "lmBody",
+      "lmBrave",
+      "lmClose",
+      "lmHead",
+      "lmWrite",
+      "map",
+      "pageSub",
+      "pageTitle",
+      "radius",
+      "radiusLabel",
+      "results",
+      "runCity",
+      "runMap",
+      "savedCount",
+      "schAdd",
+      "schList",
+      "schRun",
+      "searchForm",
+      "searchPanel",
+      "searchProgress",
+      "sidebarSearch",
+      "sort",
+      "source",
+      "sourceSeg",
+      "sourceSelect",
+      "sparkEmail",
+      "sparkHot",
+      "sparkSaved",
+      "sparkTotal",
+      "srcHint",
+      "srcHintAdv",
+      "stats",
+      "statsBg",
+      "statsBody",
+      "statsBtn",
+      "statsBtnBottom",
+      "statsBtnSide",
+      "statsClose",
+      "status",
+      "statusFilter",
+      "textSearch",
+      "theme",
+      "title",
+      "upgradeAgentBtn",
+      "waterfallHint"
+    ],
+    "ui_surfaces": {
+      "pages_tabs": [
+        "search",
+        "agent",
+        "all",
+        "saved"
+      ],
+      "modals": [
+        "cmdPalette",
+        "leadModal",
+        "leadModalBg",
+        "stats"
+      ],
+      "drawers": [
+        "drawer",
+        "drawerBg"
+      ],
+      "panels": [
+        "agentPanel",
+        "searchPanel"
+      ],
+      "forms": [
+        "agentForm",
+        "searchForm"
+      ]
+    }
+  },
+  "features": [
+    {
+      "name": "dashboard_load",
+      "ok": true,
+      "duration_ms": 0.0,
+      "errors": [],
+      "warnings": [],
+      "api_calls": [],
+      "screenshot": "/Users/vladyslav.katash/Research/leadgen/data/product_audit/screenshots/01_dashboard_load.png",
+      "notes": ""
+    },
+    {
+      "name": "tab_search",
+      "ok": true,
+      "duration_ms": 147.0,
+      "errors": [],
+      "warnings": [],
+      "api_calls": [],
+      "screenshot": "/Users/vladyslav.katash/Research/leadgen/data/product_audit/screenshots/02_tab_search.png",
+      "notes": ""
+    },
+    {
+      "name": "tab_all",
+      "ok": true,
+      "duration_ms": 38.6,
+      "errors": [],
+      "warnings": [],
+      "api_calls": [],
+      "screenshot": "/Users/vladyslav.katash/Research/leadgen/data/product_audit/screenshots/03_tab_all.png",
+      "notes": ""
+    },
+    {
+      "name": "tab_saved",
+      "ok": true,
+      "duration_ms": 504.6,
+      "errors": [],
+      "warnings": [],
+      "api_calls": [],
+      "screenshot": "/Users/vladyslav.katash/Research/leadgen/data/product_audit/screenshots/04_tab_saved.png",
+      "notes": ""
+    },
+    {
+      "name": "tab_agent",
+      "ok": true,
+      "duration_ms": 85.2,
+      "errors": [],
+      "warnings": [],
+      "api_calls": [],
+      "screenshot": "/Users/vladyslav.katash/Research/leadgen/data/product_audit/screenshots/05_tab_agent.png",
+      "notes": ""
+    },
+    {
+      "name": "search_osm_10",
+      "ok": false,
+      "duration_ms": 180136.2,
+      "errors": [
+        "Page.wait_for_selector: Timeout 180000ms exceeded.\nCall log:\n  - waiting for locator(\".lead-card[data-hydrated=\\\"true\\\"], .lead-card, #empty\") to be visible\n"
+      ],
+      "warnings": [],
+      "api_calls": [],
+      "screenshot": "/Users/vladyslav.katash/Research/leadgen/data/product_audit/screenshots/06_search_osm_10.png",
+      "notes": ""
+    },
+    {
+      "name": "lead_detail_modal",
+      "ok": false,
+      "duration_ms": 0.9,
+      "errors": [
+        "no cards"
+      ],
+      "warnings": [],
+      "api_calls": [],
+      "screenshot": "/Users/vladyslav.katash/Research/leadgen/data/product_audit/screenshots/07_lead_detail_modal.png",
+      "notes": ""
+    },
+    {
+      "name": "lead_analyze",
+      "ok": true,
+      "duration_ms": 3.1,
+      "errors": [],
+      "warnings": [],
+      "api_calls": [],
+      "screenshot": "/Users/vladyslav.katash/Research/leadgen/data/product_audit/screenshots/08_lead_analyze.png",
+      "notes": ""
+    },
+    {
+      "name": "save_lead",
+      "ok": true,
+      "duration_ms": 1.7,
+      "errors": [],
+      "warnings": [],
+      "api_calls": [],
+      "screenshot": "/Users/vladyslav.katash/Research/leadgen/data/product_audit/screenshots/09_save_lead.png",
+      "notes": ""
+    },
+    {
+      "name": "bulk_select",
+      "ok": true,
+      "duration_ms": 2.1,
+      "errors": [],
+      "warnings": [],
+      "api_calls": [],
+      "screenshot": "/Users/vladyslav.katash/Research/leadgen/data/product_audit/screenshots/10_bulk_select.png",
+      "notes": ""
+    },
+    {
+      "name": "analytics_modal",
+      "ok": true,
+      "duration_ms": 1098.5,
+      "errors": [],
+      "warnings": [],
+      "api_calls": [],
+      "screenshot": "/Users/vladyslav.katash/Research/leadgen/data/product_audit/screenshots/11_analytics_modal.png",
+      "notes": ""
+    },
+    {
+      "name": "analytics_campaigns_section",
+      "ok": true,
+      "duration_ms": 2.5,
+      "errors": [],
+      "warnings": [],
+      "api_calls": [],
+      "screenshot": "/Users/vladyslav.katash/Research/leadgen/data/product_audit/screenshots/12_analytics_campaigns_section.png",
+      "notes": ""
+    },
+    {
+      "name": "agent_chat",
+      "ok": true,
+      "duration_ms": 6107.0,
+      "errors": [],
+      "warnings": [],
+      "api_calls": [],
+      "screenshot": "/Users/vladyslav.katash/Research/leadgen/data/product_audit/screenshots/13_agent_chat.png",
+      "notes": ""
+    },
+    {
+      "name": "cmd_palette",
+      "ok": true,
+      "duration_ms": 410.3,
+      "errors": [],
+      "warnings": [],
+      "api_calls": [],
+      "screenshot": "/Users/vladyslav.katash/Research/leadgen/data/product_audit/screenshots/14_cmd_palette.png",
+      "notes": ""
+    },
+    {
+      "name": "map_search_here",
+      "ok": true,
+      "duration_ms": 53.1,
+      "errors": [],
+      "warnings": [],
+      "api_calls": [],
+      "screenshot": "/Users/vladyslav.katash/Research/leadgen/data/product_audit/screenshots/15_map_search_here.png",
+      "notes": ""
+    },
+    {
+      "name": "light_theme",
+      "ok": true,
+      "duration_ms": 596.4,
+      "errors": [],
+      "warnings": [],
+      "api_calls": [],
+      "screenshot": "/Users/vladyslav.katash/Research/leadgen/data/product_audit/screenshots/16_light_theme.png",
+      "notes": ""
+    },
+    {
+      "name": "mobile_375",
+      "ok": true,
+      "duration_ms": 0.0,
+      "errors": [],
+      "warnings": [],
+      "api_calls": [],
+      "screenshot": "/Users/vladyslav.katash/Research/leadgen/data/product_audit/screenshots/17_mobile_375.png",
+      "notes": ""
+    },
+    {
+      "name": "adversarial_spam_search",
+      "ok": true,
+      "duration_ms": 1266.1,
+      "errors": [],
+      "warnings": [],
+      "api_calls": [],
+      "screenshot": "/Users/vladyslav.katash/Research/leadgen/data/product_audit/screenshots/18_adversarial_spam_search.png",
+      "notes": ""
+    }
+  ],
+  "issues": [
+    {
+      "id": "ISS-001",
+      "severity": "high",
+      "title": "Feature failed: search_osm_10",
+      "reproduction": [
+        "Run Playwright step: search_osm_10"
+      ],
+      "expected": "Step completes without error",
+      "actual": "Page.wait_for_selector: Timeout 180000ms exceeded.\nCall log:\n  - waiting for locator(\".lead-card[data-hydrated=\\\"true\\\"], .lead-card, #empty\") to be visible\n",
+      "evidence": "duration_ms=180136.2",
+      "screenshot": "/Users/vladyslav.katash/Research/leadgen/data/product_audit/screenshots/06_search_osm_10.png",
+      "affected_api": "UI",
+      "possible_root_cause": "Timing/race or missing element",
+      "business_impact": "User cannot complete workflow step",
+      "suggested_solution": "Add wait for data load before interaction",
+      "roi_score": 30,
+      "priority_rank": 3
+    },
+    {
+      "id": "ISS-002",
+      "severity": "medium",
+      "title": "Feature failed: lead_detail_modal",
+      "reproduction": [
+        "Run Playwright step: lead_detail_modal"
+      ],
+      "expected": "Step completes without error",
+      "actual": "no cards",
+      "evidence": "duration_ms=0.9",
+      "screenshot": "/Users/vladyslav.katash/Research/leadgen/data/product_audit/screenshots/07_lead_detail_modal.png",
+      "affected_api": "UI",
+      "possible_root_cause": "Timing/race or missing element",
+      "business_impact": "User cannot complete workflow step",
+      "suggested_solution": "Add wait for data load before interaction",
+      "roi_score": 20,
+      "priority_rank": 2
+    }
+  ],
+  "stress": [
+    {
+      "test": "osm_search_limit_10",
+      "limit": 10,
+      "wall_ms": 69470.6,
+      "api_ms": 69469.8,
+      "status": 200,
+      "leads_returned": 10,
+      "meta": {
+        "requested_limit": 10,
+        "returned": 10,
+        "discovered_raw": 57,
+        "deduped_before_enrichment": 55,
+        "capped": false,
+        "cap_reason": null,
+        "source": "osm",
+        "after_filters": 10
+      },
+      "ok": true
+    },
+    {
+      "test": "osm_search_limit_50",
+      "limit": 50,
+      "wall_ms": 85101.6,
+      "api_ms": 85098.1,
+      "status": 200,
+      "leads_returned": 50,
+      "meta": {
+        "requested_limit": 50,
+        "returned": 50,
+        "discovered_raw": 57,
+        "deduped_before_enrichment": 55,
+        "capped": false,
+        "cap_reason": null,
+        "source": "osm",
+        "after_filters": 50
+      },
+      "ok": true
+    },
+    {
+      "test": "osm_search_limit_100",
+      "limit": 100,
+      "wall_ms": 116298.1,
+      "api_ms": 116292.2,
+      "status": 200,
+      "leads_returned": 93,
+      "meta": {
+        "requested_limit": 100,
+        "returned": 93,
+        "discovered_raw": 95,
+        "deduped_before_enrichment": 93,
+        "capped": true,
+        "cap_reason": "source_exhausted",
+        "source": "osm",
+        "after_filters": 93
+      },
+      "ok": true
+    },
+    {
+      "test": "osm_search_limit_250",
+      "limit": 250,
+      "wall_ms": 243064.6,
+      "api_ms": 243049.9,
+      "status": 200,
+      "leads_returned": 212,
+      "meta": {
+        "requested_limit": 250,
+        "returned": 212,
+        "discovered_raw": 217,
+        "deduped_before_enrichment": 212,
+        "capped": true,
+        "cap_reason": "source_exhausted",
+        "source": "osm",
+        "after_filters": 212
+      },
+      "ok": true
+    },
+    {
+      "test": "osm_search_limit_500",
+      "limit": 500,
+      "wall_ms": 242819.5,
+      "api_ms": 242805.7,
+      "status": 200,
+      "leads_returned": 212,
+      "meta": {
+        "requested_limit": 500,
+        "returned": 212,
+        "discovered_raw": 217,
+        "deduped_before_enrichment": 212,
+        "capped": true,
+        "cap_reason": "source_exhausted",
+        "source": "osm",
+        "after_filters": 212
+      },
+      "ok": true
+    }
+  ],
+  "adversarial": [
+    {
+      "name": "double_find_concurrent",
+      "result": [
+        {
+          "status": 200,
+          "len": 5
+        },
+        {
+          "status": 200,
+          "len": 5
+        },
+        {
+          "status": 200,
+          "len": 5
+        }
+      ]
+    },
+    {
+      "name": "empty_find",
+      "result": {
+        "method": "POST",
+        "path": "/api/find",
+        "status": 422,
+        "ms": 4.8,
+        "ok": false,
+        "body_preview": "{'detail': [{'type': 'missing', 'loc': ['body', 'category'], 'msg': 'Field required', 'input': {}}, {'type': 'missing', 'loc': ['body', 'city'], 'msg': 'Field required', 'input': {}}]}"
+      }
+    },
+    {
+      "name": "huge_chat",
+      "result": {
+        "method": "POST",
+        "path": "/api/chat",
+        "status": 200,
+        "ms": 2565.6,
+        "ok": true,
+        "body_preview": "{'session_id': '1f2de860-3241-4df2-8f76-716d17391086', 'reply': 'На жаль, ваше повідомлення не містить конкретного запиту. Будь ласка, уточніть, що саме вас цікавить: пошук потенційних клієнтів, аналіз компаній, або щось інше? Я готовий допомогти!'}"
+      }
+    },
+    {
+      "name": "invalid_json_lead",
+      "result": {
+        "method": "POST",
+        "path": "/api/save",
+        "status": 422,
+        "ms": 3.0,
+        "ok": false,
+        "body_preview": "{'detail': [{'type': 'dict_type', 'loc': ['body', 'lead'], 'msg': 'Input should be a valid dictionary', 'input': None}]}"
+      }
+    },
+    {
+      "name": "campaign_fake_id",
+      "result": {
+        "method": "POST",
+        "path": "/api/campaigns/fake99/run",
+        "status": 200,
+        "ms": 2.3,
+        "ok": true,
+        "body_preview": "{'error': 'campaign not found'}"
+      }
+    }
+  ],
+  "network_log": [
+    {
+      "t": 1782825935.470639,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825935.472899,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825936.676068,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825936.678988,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825937.8813288,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825937.88378,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825939.086654,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825939.088941,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825940.291141,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825940.293647,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825941.4968882,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825941.49928,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825942.700233,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825942.702857,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825943.905808,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825943.908146,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825945.110757,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825945.1128802,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825946.3162072,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825946.318313,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825947.5215192,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825947.523951,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825948.726888,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825948.7292821,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825949.932608,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825949.934686,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825951.1375282,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825951.140109,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825952.3426208,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825952.345108,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825953.5494761,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825953.5514371,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825954.7544472,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825954.756715,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825955.959685,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825955.962063,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825957.1649868,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825957.167305,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825958.3705459,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825958.3728378,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825959.576211,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825959.578484,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825960.782172,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825960.7843258,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825961.987753,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825961.990061,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825963.1915798,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825963.194636,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825964.396054,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825964.3983612,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825965.601293,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825965.604521,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825966.807538,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825966.809911,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825968.012015,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825968.014373,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825969.217323,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825969.219583,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825970.422834,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825970.42522,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825971.628704,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825971.630902,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825972.833906,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825972.836149,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825974.0396218,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825974.0418718,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825975.2453802,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825975.2474508,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825976.449465,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825976.4517188,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825977.653435,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825977.655585,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825978.859013,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825978.861532,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825980.064492,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825980.066863,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825981.271029,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825981.309136,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825982.510816,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825982.513155,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825983.716962,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825983.721448,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825984.92432,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825984.9264839,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825986.1301079,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825986.1353788,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825987.3388832,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825987.3966541,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825988.598485,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825988.6018581,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825989.804375,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825989.806902,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825991.008042,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825991.010143,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825992.213233,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825992.215917,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825993.4178061,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825993.421107,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825994.6246002,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825994.627211,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825995.831439,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825995.833438,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825997.034621,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825997.037062,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825998.240476,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825998.2427788,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825999.44592,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782825999.448071,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826000.651541,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826000.654043,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826001.8548539,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826001.859259,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826003.062426,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826003.067435,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826004.269221,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826004.27149,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826005.474289,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826005.476714,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826006.6801631,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826006.68787,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826007.885199,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826007.88765,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826009.091224,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826009.093496,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826010.2958038,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826010.2991738,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826011.501816,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826011.504184,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826012.7075222,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826012.713063,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826013.9145799,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826013.917758,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826015.119761,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826015.1284852,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826016.326991,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826016.3294,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826017.533015,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826017.535902,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826018.739111,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826018.741377,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826019.9426959,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826019.947181,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826021.148952,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826021.15153,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826022.354291,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826022.408767,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826023.611941,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826023.6141791,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826024.817766,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826024.820081,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826026.022628,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826026.0246809,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826027.2260978,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826027.229047,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034"
+    },
+    {
+      "t": 1782826028.0879612,
+      "method": "POST",
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034/cancel"
+    },
+    {
+      "t": 1782826028.115909,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a5bd6e28-034/cancel"
+    },
+    {
+      "t": 1782826029.536175,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/stats"
+    },
+    {
+      "t": 1782826029.536351,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/usage"
+    },
+    {
+      "t": 1782826029.536499,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/icp"
+    },
+    {
+      "t": 1782826029.536611,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/schedules"
+    },
+    {
+      "t": 1782826029.536729,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/campaigns"
+    },
+    {
+      "t": 1782826029.5369248,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/campaigns/runs?limit=8"
+    },
+    {
+      "t": 1782826029.5886872,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/icp"
+    },
+    {
+      "t": 1782826029.588898,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/campaigns"
+    },
+    {
+      "t": 1782826029.589033,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/schedules"
+    },
+    {
+      "t": 1782826029.589164,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/campaigns/runs?limit=8"
+    },
+    {
+      "t": 1782826029.5892951,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/usage"
+    },
+    {
+      "t": 1782826029.785998,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/stats"
+    },
+    {
+      "t": 1782826031.582687,
+      "method": "POST",
+      "url": "http://127.0.0.1:8000/api/chat/stream"
+    },
+    {
+      "t": 1782826031.6163409,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/chat/stream"
+    },
+    {
+      "t": 1782826040.486145,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/"
+    },
+    {
+      "t": 1782826040.598767,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/categories"
+    },
+    {
+      "t": 1782826040.609662,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/categories"
+    },
+    {
+      "t": 1782826040.61999,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/saved"
+    },
+    {
+      "t": 1782826040.620127,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/leads?limit=3000"
+    },
+    {
+      "t": 1782826040.620264,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/stats"
+    },
+    {
+      "t": 1782826040.620425,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/usage"
+    },
+    {
+      "t": 1782826040.6205492,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/ai_status"
+    },
+    {
+      "t": 1782826040.6548328,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/saved"
+    },
+    {
+      "t": 1782826040.664653,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/ai_status"
+    },
+    {
+      "t": 1782826040.799315,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/usage"
+    },
+    {
+      "t": 1782826041.014461,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/stats"
+    },
+    {
+      "t": 1782826041.088358,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/leads?limit=3000"
+    },
+    {
+      "t": 1782826041.811341,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/"
+    },
+    {
+      "t": 1782826041.8935628,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/categories"
+    },
+    {
+      "t": 1782826041.9011798,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/categories"
+    },
+    {
+      "t": 1782826041.922484,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/saved"
+    },
+    {
+      "t": 1782826041.9240599,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/leads?limit=3000"
+    },
+    {
+      "t": 1782826041.924351,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/stats"
+    },
+    {
+      "t": 1782826041.9259038,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/usage"
+    },
+    {
+      "t": 1782826041.926045,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/ai_status"
+    },
+    {
+      "t": 1782826041.935534,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/ai_status"
+    },
+    {
+      "t": 1782826041.941513,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/saved"
+    },
+    {
+      "t": 1782826041.9739509,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/usage"
+    },
+    {
+      "t": 1782826042.042856,
+      "method": "POST",
+      "url": "http://127.0.0.1:8000/api/search"
+    },
+    {
+      "t": 1782826042.398478,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/stats"
+    },
+    {
+      "t": 1782826042.40392,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/leads?limit=3000"
+    },
+    {
+      "t": 1782826042.444386,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/search"
+    },
+    {
+      "t": 1782826042.445369,
+      "method": "GET",
+      "url": "http://127.0.0.1:8000/api/jobs/a707b045-520"
+    },
+    {
+      "t": 1782826042.448232,
+      "status": 200,
+      "url": "http://127.0.0.1:8000/api/jobs/a707b045-520"
+    }
+  ],
+  "console_log": [
+    {
+      "type": "warning",
+      "text": "cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation"
+    },
+    {
+      "type": "warning",
+      "text": "cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation"
+    },
+    {
+      "type": "warning",
+      "text": "cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation"
+    }
+  ],
+  "api_features": [
+    {
+      "method": "POST",
+      "path": "/api/find",
+      "status": 200,
+      "ms": 38521.2,
+      "ok": true,
+      "body_preview": "{'leads': [{'company': {'name': 'Київський будинок вчених', 'category': 'agency', 'city': 'Київ', 'country': 'Ukraine', 'website': 'http://kbvnanu.kiev.ua', 'phone': '+380 44 234 3190', 'address': None, 'lat': 50.4480103, 'lon': 30.5154527, 'osm_id': 'node/2804627089', 'source': 'osm', 'sources': ['",
+      "feature": "search_osm_5",
+      "wall_ms": 38523.7
+    },
+    {
+      "method": "POST",
+      "path": "/api/signals/poll",
+      "status": 200,
+      "ms": 575.9,
+      "ok": true,
+      "body_preview": "{'ts': '2026-06-30T12:55:36.350715+00:00', 'hits': 0, 'leads_created': 0, 'samples': []}",
+      "feature": "signals_poll",
+      "wall_ms": 576.0
+    },
+    {
+      "method": "GET",
+      "path": "/api/campaigns",
+      "status": 200,
+      "ms": 3.0,
+      "ok": true,
+      "body_preview": "{'campaigns': [{'id': '378d90ad-21c', 'name': 'Test camp', 'category': 'agency', 'cities': ['Київ'], 'source': 'all_sources', 'limit_per_run': 5, 'cron': '0 7 * * *', 'auto_outreach': False, 'lang': 'uk', 'icp': 'B2B SaaS та агенції в Україні, 10-50 співробітників, що активно ростуть', 'status': 'ac",
+      "feature": "campaigns_list",
+      "wall_ms": 3.7
+    },
+    {
+      "method": "POST",
+      "path": "/api/campaigns",
+      "status": 200,
+      "ms": 5.2,
+      "ok": true,
+      "body_preview": "{'campaign_id': '385636c6-332'}",
+      "feature": "campaign_create",
+      "wall_ms": 5.2
+    },
+    {
+      "method": "POST",
+      "path": "/api/campaigns/385636c6-332/run",
+      "status": 200,
+      "ms": 65266.1,
+      "ok": true,
+      "body_preview": "{'campaign_id': '385636c6-332', 'leads_found': 3, 'hot': 0, 'drafts_queued': 0, 'cities': ['Київ']}",
+      "feature": "campaign_run",
+      "wall_ms": 65266.3
+    },
+    {
+      "method": "POST",
+      "path": "/api/campaigns/385636c6-332/pause",
+      "status": 200,
+      "ms": 5.8,
+      "ok": true,
+      "body_preview": "{'paused': True}",
+      "feature": "campaign_pause",
+      "wall_ms": 5.9
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/campaigns/385636c6-332",
+      "status": 200,
+      "ms": 3.1,
+      "ok": true,
+      "body_preview": "{'deleted': True}",
+      "feature": "campaign_delete",
+      "wall_ms": 3.2
+    },
+    {
+      "method": "GET",
+      "path": "/api/schedules",
+      "status": 200,
+      "ms": 2.5,
+      "ok": true,
+      "body_preview": "[]",
+      "feature": "schedules_list",
+      "wall_ms": 2.5
+    },
+    {
+      "method": "POST",
+      "path": "/api/run_schedules",
+      "status": 200,
+      "ms": 2.3,
+      "ok": true,
+      "body_preview": "{'schedules': 0, 'new_leads': 0}",
+      "feature": "run_schedules",
+      "wall_ms": 2.3
+    },
+    {
+      "method": "GET",
+      "path": "/api/outreach/queue",
+      "status": 200,
+      "ms": 2.5,
+      "ok": true,
+      "body_preview": "[{'id': 'a225111b-d45', 'lead_id': 'test-lead', 'channel': 'email', 'subject': 'Hi', 'body': 'Hello', 'to_email': 'test@example.com', 'sequence_id': None, 'step': 0, 'status': 'pending', 'created_at': '2026-06-30T12:54:08.212495+00:00', 'sent_at': None, 'error': None}, {'id': '409b8536-228', 'lead_i",
+      "feature": "outreach_queue",
+      "wall_ms": 2.8
+    },
+    {
+      "method": "POST",
+      "path": "/api/outreach/process",
+      "status": 200,
+      "ms": 12.8,
+      "ok": true,
+      "body_preview": "{'sent': 0, 'failed': 2}",
+      "feature": "outreach_process",
+      "wall_ms": 12.9
+    },
+    {
+      "method": "POST",
+      "path": "/api/analyze",
+      "status": 200,
+      "ms": 2685.6,
+      "ok": true,
+      "body_preview": "{'summary': '**Болі:**\\n- Відсутність контактних даних у відкритому доступі може ускладнювати комунікацію.\\n- Можлива нестача ресурсів або знань для оптимізації автоматизаційних процесів.\\n- Необхідність швидкої і ефективної відповіді на клієнтські запити для підтримки бренду.\\n\\n**Чому зараз:**\\nРо",
+      "feature": "analyze",
+      "wall_ms": 2685.8
+    },
+    {
+      "method": "POST",
+      "path": "/api/recommend",
+      "status": 200,
+      "ms": 3566.3,
+      "ok": true,
+      "body_preview": "{'recommendations': [{'name': 'Автоматизація оновлення контенту на вебсайті', 'pitch': 'Забезпечте автоматичне оновлення інформації про послуги та проекти на вашому вебсайті для покращення взаємодії з клієнтами.', 'search': 'website content update Webflow automation CMS integration', 'template': {'i",
+      "feature": "recommend",
+      "wall_ms": 3566.5
+    },
+    {
+      "method": "POST",
+      "path": "/api/outreach",
+      "status": 200,
+      "ms": 4058.3,
+      "ok": true,
+      "body_preview": "{'message': \"Тема: Оптимізація контенту для DTEL-IX без зайвих зусиль\\n\\nДоброго дня,\\n\\nЯ представляю агентство з автоматизації, яке спеціалізується на готових рішеннях n8n AI. Ми пропонуємо автоматизацію, яка може значно спростити процес управління контентом для вашої компанії.\\n\\nНаш Content Repu",
+      "feature": "outreach_gen",
+      "wall_ms": 4058.4
+    },
+    {
+      "method": "POST",
+      "path": "/api/qualify",
+      "status": 200,
+      "ms": 801.7,
+      "ok": true,
+      "body_preview": "{'fit': 70, 'reason': 'Агенція в Києві, але невідомий розмір компанії.', 'ai': True}",
+      "feature": "qualify",
+      "wall_ms": 801.7
+    },
+    {
+      "method": "POST",
+      "path": "/api/save",
+      "status": 200,
+      "ms": 15.1,
+      "ok": true,
+      "body_preview": "{'id': 'd:dtel-ix.net'}",
+      "feature": "save",
+      "wall_ms": 15.2
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat",
+      "status": 200,
+      "ms": 233.4,
+      "ok": true,
+      "body_preview": "{'session_id': '1368fdf8-2e73-417a-a184-f9c579b4cc58', 'reply': '**База:** 1000 лідів · email: 427 · hot: 228 · збережено: 27'}",
+      "feature": "agent_chat",
+      "wall_ms": 233.5
+    },
+    {
+      "method": "GET",
+      "path": "/api/export.csv?scope=saved",
+      "status": 200,
+      "ms": 4.0,
+      "ok": true,
+      "body_preview": "name,category,city,address,website,rating,reviews,size,score,tier,emails,phones,linkedin,telegram,decision_makers,tags,status,notes\r\nALINA FRENDIY,real_estate,Дніпро,,https://t.me/frendiychannel,,,large,50,warm,,,,@frendiychannel,ALINA FRENDIY,,new,\r\nOdessa Jenkins,Coach,Одеса,,https://www.youtube.c",
+      "feature": "export_csv",
+      "wall_ms": 4.2
+    }
+  ],
+  "usage_snapshot": {
+    "month": "2026-06",
+    "apify": {
+      "runs": 209,
+      "usd": 25.08,
+      "cap": 25.0,
+      "blocked": true
+    },
+    "openai": {
+      "calls": 116,
+      "usd": 1.16,
+      "cap": 10.0,
+      "blocked": false
+    },
+    "brave": {
+      "calls": 1000,
+      "usd": 5.0,
+      "cap": 5.0,
+      "blocked": true
+    },
+    "apollo": {
+      "calls": 0,
+      "usd": 0.0,
+      "cap": 20.0,
+      "blocked": false
+    },
+    "hunter": {
+      "calls": 0,
+      "usd": 0.0,
+      "cap": 10.0,
+      "blocked": false
+    },
+    "budget": {
+      "providers": {
+        "apify": {
+          "kind": "apify",
+          "spent_usd": 25.08,
+          "cap_usd": 25.0,
+          "blocked": true,
+          "allowed": false,
+          "pct": 100.0
+        },
+        "openai": {
+          "kind": "openai",
+          "spent_usd": 1.16,
+          "cap_usd": 10.0,
+          "blocked": false,
+          "allowed": true,
+          "pct": 11.6
+        },
+        "brave": {
+          "kind": "brave",
+          "spent_usd": 5.0,
+          "cap_usd": 5.0,
+          "blocked": true,
+          "allowed": false,
+          "pct": 100.0
+        },
+        "apollo": {
+          "kind": "apollo",
+          "spent_usd": 0.0,
+          "cap_usd": 20.0,
+          "blocked": false,
+          "allowed": true,
+          "pct": 0.0
+        },
+        "hunter": {
+          "kind": "hunter",
+          "spent_usd": 0.0,
+          "cap_usd": 10.0,
+          "blocked": false,
+          "allowed": true,
+          "pct": 0.0
+        }
+      },
+      "blocked_providers": [
+        "apify",
+        "brave"
+      ],
+      "unavailable_sources": [
+        "apify_gmaps",
+        "brave_intent",
+        "brave_places",
+        "facebook",
+        "instagram",
+        "jobs",
+        "linkedin_company",
+        "linkedin_people",
+        "web_discovery"
+      ],
+      "degraded_all_sources": true,
+      "enrich_brave_disabled": true,
+      "enrich_openai_disabled": false,
+      "source_requires": {
+        "brave_places": [
+          "brave"
+        ],
+        "brave_intent": [
+          "brave"
+        ],
+        "web_discovery": [
+          "brave"
+        ],
+        "instagram": [
+          "apify"
+        ],
+        "facebook": [
+          "apify"
+        ],
+        "jobs": [
+          "apify"
+        ],
+        "linkedin_people": [
+          "apify"
+        ],
+        "linkedin_company": [
+          "apify"
+        ],
+        "apify_gmaps": [
+          "apify"
+        ]
+      }
+    }
+  },
+  "storage_snapshot": {
+    "database": "/Users/vladyslav.katash/Research/leadgen/data/leadgen.db",
+    "leads": 2916,
+    "events": 8710
+  },
+  "finished": "2026-06-30T13:27:23.769672+00:00"
+}

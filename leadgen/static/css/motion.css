@@ -1,0 +1,35 @@
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideInRight {
+  from { transform: translateX(24px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes slideUpBar {
+  from { transform: translate(-50%, 100%); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+@keyframes pipelinePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+@keyframes toastIn {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.lead-card { animation: fadeUp var(--dur-3) var(--ease-out) both; }
+.lead-card:nth-child(1) { animation-delay: 0ms; }
+.lead-card:nth-child(2) { animation-delay: 40ms; }
+.lead-card:nth-child(3) { animation-delay: 80ms; }
+.lead-card:nth-child(4) { animation-delay: 120ms; }
+.lead-card:nth-child(n+5) { animation-delay: 160ms; }
+.modal-panel { animation: fadeUp var(--dur-2) var(--ease-out) both; transform-origin: center; }
+.drawer-panel { animation: slideInRight var(--dur-3) var(--ease-out) both; }
+#bulkBar:not(.hidden) { animation: slideUpBar var(--dur-3) var(--ease-out) both; }
+.toast-item { animation: toastIn var(--dur-2) var(--ease-out) both; }
+@media (prefers-reduced-motion: reduce) {
+  .lead-card, .modal-panel, .drawer-panel, #bulkBar, .toast-item { animation: none !important; }
+  .app-bg .orb { animation: none !important; }
+  .pipeline-step.active .pipeline-dot { animation: none !important; }
+}

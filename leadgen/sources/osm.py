@@ -68,6 +68,10 @@ class Company:
                     "instagram", "followers", "employees", "company_linkedin", "verified"):
             if key in self.raw_tags and self.raw_tags[key] is not None:
                 d[key] = self.raw_tags[key]
+        if self.raw_tags.get("_sources"):
+            d["sources"] = self.raw_tags["_sources"]
+        if self.raw_tags.get("_pre_score"):
+            d["pre_score"] = self.raw_tags["_pre_score"]
         return d
 
 

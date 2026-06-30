@@ -1,0 +1,14 @@
+{
+  "issue": "ISS-001",
+  "description": "skeleton non-interactive; modal only after hydration",
+  "wall_ms": 3840.5,
+  "timings": {
+    "skeleton_click_ms": 7.99,
+    "hydrated_open_ms": 63.47
+  },
+  "assertions": {
+    "skeleton_pointer_events": "none",
+    "skeleton_click_opens_modal": false,
+    "hydrated_click_opens_modal": true
+  }
+}

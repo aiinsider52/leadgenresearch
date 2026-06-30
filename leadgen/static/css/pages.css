@@ -1,0 +1,63 @@
+/* Page-specific v6 */
+#infraPanel .infra-overall {
+  padding: 20px 24px; border-radius: var(--radius-xl);
+  background: var(--bg-2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+#infraPanel .infra-overall-val {
+  font-family: var(--font-display); font-size: 32px; font-weight: 300;
+}
+#analyticsPanel .exec-kpi-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+#analyticsPanel .exec-kpi {
+  padding: 20px; text-align: center;
+  border-radius: var(--radius-lg); background: var(--bg-2); border: 1px solid var(--border);
+}
+#analyticsPanel .exec-kpi-val {
+  font-family: var(--font-display); font-size: 28px; font-weight: 300;
+  color: var(--accent-hover);
+}
+#campaignsPanel .camp-run-timeline {
+  margin-top: 20px; padding: 16px;
+  border-radius: var(--radius-lg); background: var(--bg-2); border: 1px solid var(--border);
+}
+#searchPanel .cmd-float { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+#searchPanel .cmd-float::before { display: none !important; }
+
+.render-cap-footer {
+  grid-column: 1 / -1; text-align: center;
+  font-size: 12px; color: var(--text-tertiary);
+  padding: 12px 16px; border-radius: var(--radius-md);
+  background: var(--bg-2); border: 1px solid var(--border);
+}
+
+.stream-cursor {
+  display: inline-block; width: 2px; height: 1em;
+  background: var(--accent); margin-left: 2px;
+  animation: pipelinePulse 0.8s ease-in-out infinite;
+  vertical-align: text-bottom;
+}
+
+.agent-msg.assistant .agent-avatar {
+  width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+  background: var(--accent-muted); color: var(--accent-hover);
+  display: grid; place-items: center; font-size: 14px;
+}
+
+.empty-state .empty-icon {
+  background: var(--accent-muted) !important;
+  border-color: rgba(124, 92, 255, 0.25) !important;
+  color: var(--accent-hover) !important;
+  box-shadow: none !important;
+}
+
+::-webkit-scrollbar-thumb { background: rgba(124, 92, 255, 0.25) !important; }
+::-webkit-scrollbar-thumb:hover { background: rgba(124, 92, 255, 0.4) !important; }
+
+.lm-btn-write {
+  background: var(--accent) !important;
+  color: #fff !important;
+}
+.lm-wide { max-width: 1100px !important; }

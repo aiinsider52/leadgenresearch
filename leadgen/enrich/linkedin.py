@@ -49,7 +49,7 @@ def enrich_people(decision_makers: list[dict], company_name: str, html_profiles:
     for dm in decision_makers:
         name = dm.get("name", "")
         matched = next((p for p in html_profiles if _slug_match(p, name)), None)
-        dm["linkedin"] = matched
+        dm["linkedin"] = matched or dm.get("linkedin")
         dm["linkedin_search"] = people_search_url(name, company_name)
         dm["google_search"] = google_profile_search_url(name, company_name)
     return decision_makers

@@ -100,6 +100,9 @@ def discover_apify(
             f"Apify actor does not cover '{country}' ({code}). "
             f"Supported: {', '.join(sorted(SUPPORTED - {'ALL'}))}. Use Playwright/OSM."
         )
+    from .. import usage
+    if not usage.allowed("apify"):
+        raise RuntimeError("Apify budget exceeded for this month — raise APIFY_BUDGET_USD.")
 
     payload: dict = {"country": code, "max_results": max(limit, 1)}
     if use_keyword:
@@ -110,6 +113,7 @@ def discover_apify(
         payload["city"] = city
 
     r = requests.post(RUN_SYNC, params={"token": token}, json=payload, timeout=timeout)
+    usage.record("apify")
     if r.status_code >= 400:
         raise RuntimeError(f"Apify run failed: HTTP {r.status_code} {r.text[:200]}")
     items = r.json()

@@ -1,0 +1,7 @@
+{
+  "baseline_run": "20260630_120028",
+  "new_run": "20260630_143401",
+  "method": "live HTTP + Playwright (same scenarios as baseline product audit)",
+  "product_health_score": {"baseline": 82.8, "new": 68.5, "delta": -14.3},
+  "engineering_quality_score": {"baseline": 84.0, "new": 71.0, "delta": -13.0}
+}

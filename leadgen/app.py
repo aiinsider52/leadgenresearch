@@ -17,7 +17,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from . import llm, service, usage, storage, auth
+from . import llm, service, usage, storage, auth, search_guard, worker
+from .search_response import package_search_result
 from . import brave
 from .enrich.brave_people import enrich_people_brave
 from .enrich.brave_signals import enrich_news_signals
@@ -125,6 +126,7 @@ class FindRequest(BaseModel):
     brave_news: bool = True
     brave_intent: bool = True
     filters: Filters = Filters()
+    search_seq: Optional[int] = None
 
 
 class FindAroundRequest(BaseModel):
@@ -137,6 +139,7 @@ class FindAroundRequest(BaseModel):
     enrich: bool = True
     require_website: bool = False
     filters: Filters = Filters()
+    search_seq: Optional[int] = None
 
 
 def _apply_filters(leads: list[dict], f: Filters) -> list[dict]:
@@ -166,25 +169,29 @@ def leads(limit: int = 100):
 @app.post("/api/find")
 def api_find(req: FindRequest):
     lang = req.lang if req.lang in LANGS else "uk"
+    search_guard.register_search(req.search_seq)
     try:
         res = find_leads(req.category, req.city, country=req.country, limit=req.limit,
                          lang=lang, enrich=req.enrich, require_website=req.require_website,
                          source=req.source, ig_mode=req.ig_mode,
                          discover_websites=req.discover_websites,
                          brave_people=req.brave_people, brave_news=req.brave_news,
-                         brave_intent=req.brave_intent)
+                         brave_intent=req.brave_intent, search_seq=req.search_seq)
     except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
-    return JSONResponse(_apply_filters(_decorate([l.to_dict() for l in res]), req.filters))
+    body = package_search_result(res, req.filters.model_dump())
+    return JSONResponse(body)
 
 
 @app.post("/api/find_around")
 def api_find_around(req: FindAroundRequest):
     lang = req.lang if req.lang in LANGS else "uk"
+    search_guard.register_search(req.search_seq)
     res = find_leads_around(req.category, req.lat, req.lon, radius_m=req.radius_m,
                             limit=req.limit, lang=lang, enrich=req.enrich,
-                            require_website=req.require_website)
-    return JSONResponse(_apply_filters(_decorate([l.to_dict() for l in res]), req.filters))
+                            require_website=req.require_website, search_seq=req.search_seq)
+    body = package_search_result(res, req.filters.model_dump())
+    return JSONResponse(body)
 
 
 @app.get("/api/saved")
@@ -268,21 +275,24 @@ class FindMultiRequest(BaseModel):
     brave_news: bool = True
     brave_intent: bool = True
     filters: Filters = Filters()
+    search_seq: Optional[int] = None
 
 
 @app.post("/api/find_multi")
 def api_find_multi(req: FindMultiRequest):
     lang = req.lang if req.lang in LANGS else "uk"
     cities = req.cities or UA_MAJOR_CITIES
+    search_guard.register_search(req.search_seq)
     try:
         res = find_leads_multi(req.category, cities, country=req.country, limit=req.limit,
                                lang=lang, enrich=req.enrich, source=req.source, ig_mode=req.ig_mode,
                                discover_websites=req.discover_websites,
                                brave_people=req.brave_people, brave_news=req.brave_news,
-                               brave_intent=req.brave_intent)
+                               brave_intent=req.brave_intent, search_seq=req.search_seq)
     except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
-    return JSONResponse(_apply_filters(_decorate([l.to_dict() for l in res]), req.filters))
+    body = package_search_result(res, req.filters.model_dump())
+    return JSONResponse(body)
 
 
 class FindExpandedRequest(BaseModel):
@@ -300,21 +310,52 @@ class FindExpandedRequest(BaseModel):
     brave_news: bool = True
     brave_intent: bool = True
     filters: Filters = Filters()
+    search_seq: Optional[int] = None
 
 
 @app.post("/api/find_expanded")
 def api_find_expanded(req: FindExpandedRequest):
     lang = req.lang if req.lang in LANGS else "uk"
+    search_guard.register_search(req.search_seq)
     try:
         res = find_leads_expanded(req.category, req.city, country=req.country, limit=req.limit,
                                   lang=lang, enrich=req.enrich, source=req.source,
                                   ig_mode=req.ig_mode, cities=(req.cities or None),
                                   discover_websites=req.discover_websites,
                                   brave_people=req.brave_people, brave_news=req.brave_news,
-                                  brave_intent=req.brave_intent)
+                                  brave_intent=req.brave_intent, search_seq=req.search_seq)
     except Exception as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
-    return JSONResponse(_apply_filters(_decorate([l.to_dict() for l in res]), req.filters))
+    body = package_search_result(res, req.filters.model_dump())
+    return JSONResponse(body)
+
+
+class SearchSubmitRequest(BaseModel):
+    endpoint: str
+    params: dict = {}
+    filters: Filters = Filters()
+    search_seq: Optional[int] = None
+
+
+@app.post("/api/search")
+def api_search_async(req: SearchSubmitRequest):
+    """Start async search; poll GET /api/jobs/{job_id} for {status, result}."""
+    search_guard.register_search(req.search_seq)
+    jid = worker.submit_search(
+        req.endpoint,
+        req.params,
+        req.filters.model_dump(),
+        search_seq=req.search_seq,
+    )
+    return JSONResponse({"job_id": jid, "search_seq": req.search_seq, "status": "pending"})
+
+
+@app.post("/api/jobs/{job_id}/cancel")
+def api_cancel_job(job_id: str):
+    ok = worker.cancel_job(job_id)
+    if not ok:
+        return JSONResponse({"error": "not cancellable"}, status_code=409)
+    return JSONResponse({"cancelled": True, "job_id": job_id})
 
 
 @app.get("/api/stats")

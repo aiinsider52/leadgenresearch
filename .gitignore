@@ -4,4 +4,10 @@ data/secrets.env
 data/leads.jsonl
 data/saved.json
 data/n8n_cache/
+data/brave_cache/
+data/enrich_cache/
+data/pipeline_metrics.jsonl
+data/leads.before_compact.jsonl
+data/lead_history.jsonl
+data/leadgen.db*
 .venv/
