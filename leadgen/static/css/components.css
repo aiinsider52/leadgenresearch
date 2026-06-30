@@ -24,6 +24,7 @@
 .nav-item.tab-active .ic { color: var(--accent-hover) !important; }
 .nav-item.tab-active .badge { background: rgba(124, 92, 255, 0.2); color: var(--accent-hover); }
 .nav-item .badge { font-family: var(--font-mono); font-size: 10px; }
+.nav-item.nav-sub { margin-left: 12px; font-size: 12px; opacity: 0.9; }
 
 .sidebar-brand .logo {
   background: var(--bg-2) !important;

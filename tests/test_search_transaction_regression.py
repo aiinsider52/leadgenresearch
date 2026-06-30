@@ -2,15 +2,14 @@
 from __future__ import annotations
 
 import unittest
-from pathlib import Path
 
-INDEX = Path(__file__).resolve().parent.parent / "leadgen" / "static" / "index.html"
+from static_bundle import load_static_bundle
 
 
 class SearchTransactionRegressionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.html = INDEX.read_text(encoding="utf-8")
+        cls.html = load_static_bundle()
 
     def test_abort_controller_used(self) -> None:
         self.assertIn("new AbortController()", self.html)
@@ -28,9 +27,7 @@ class SearchTransactionRegressionTests(unittest.TestCase):
     def test_cancel_ui_and_esc(self) -> None:
         self.assertIn('id="cancelSearch"', self.html)
         self.assertIn("function cancelSearch()", self.html)
-        block = self.html.split("if(e.key==='Escape')")[1][:400]
-        self.assertIn("searchInFlight", block)
-        self.assertIn("cancelSearch()", block)
+        self.assertIn("if(searchInFlight){e.preventDefault();cancelSearch();return;}", self.html)
 
     def test_visual_progress(self) -> None:
         self.assertIn('id="searchProgress"', self.html)

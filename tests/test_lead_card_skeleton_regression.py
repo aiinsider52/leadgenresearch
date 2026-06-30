@@ -2,15 +2,14 @@
 from __future__ import annotations
 
 import unittest
-from pathlib import Path
 
-INDEX = Path(__file__).resolve().parent.parent / "leadgen" / "static" / "index.html"
+from static_bundle import load_static_bundle
 
 
 class LeadCardSkeletonRegressionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.html = INDEX.read_text(encoding="utf-8")
+        cls.html = load_static_bundle()
 
     def test_skeleton_uses_dedicated_class_not_lead_card(self) -> None:
         self.assertIn("lead-card-skeleton", self.html)

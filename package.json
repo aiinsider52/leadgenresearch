@@ -1,0 +1,12 @@
+{
+  "name": "leadgen-autopilot-static",
+  "private": true,
+  "version": "6.0.0",
+  "description": "LeadGen Autopilot frontend static assets",
+  "scripts": {
+    "build:css": "cat leadgen/static/css/tokens.css leadgen/static/css/legacy.css leadgen/static/css/components.css leadgen/static/css/layouts.css leadgen/static/css/pages.css leadgen/static/css/utilities.css leadgen/static/css/misc.css leadgen/static/css/motion.css > dist/app.css",
+    "build:js": "cat leadgen/static/js/api.js leadgen/static/js/icons.js leadgen/static/js/i18n.js leadgen/static/js/cards.js leadgen/static/js/search.js leadgen/static/js/outreach.js leadgen/static/js/leads.js leadgen/static/js/analytics.js leadgen/static/js/agent.js leadgen/static/js/app.js leadgen/static/js/campaigns.js leadgen/static/js/infrastructure.js leadgen/static/js/v6-pages.js > dist/app.js",
+    "build": "mkdir -p dist && npm run build:css && npm run build:js",
+    "a11y": "python3 scripts/a11y_audit.py"
+  }
+}

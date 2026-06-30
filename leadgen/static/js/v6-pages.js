@@ -27,7 +27,7 @@
   function $$(s) { return [...document.querySelectorAll(s)]; }
 
   function stageLabel(key) {
-    const lang = global.lang || 'uk';
+    const lang = global.getLgLang?.() || 'uk';
     return (STAGE_I18N[key] || STAGE_I18N.queued)[lang] || key;
   }
 
@@ -179,12 +179,12 @@
         name: $('#campName')?.value || ($('#category')?.value + ' autopilot'),
         category: $('#category')?.value,
         cities,
-        source: global.sourceMode,
+        source: global.getLgSource?.() || 'osm',
         limit_per_run: +($('#campLimit')?.value || 80),
         cron: $('#campCron')?.value,
         auto_outreach: $('#campOutreach')?.checked,
         expand_niche: $('#campExpand')?.checked,
-        lang: global.lang,
+        lang: global.getLgLang?.() || 'uk',
         discover_websites: $('#discoverWebsites')?.checked,
         brave_people: $('#bravePeople')?.checked,
         brave_news: $('#braveNews')?.checked,
@@ -223,7 +223,7 @@
       uk: { title: 'Кампанії', new: 'Нова кампанія', name: 'Назва', active: 'активна', paused: 'пауза', last: 'останній', total: 'всього', none: 'Ще немає кампаній', runDue: '▶ Due now', runs: 'Останні запуски', create: 'Створити', created: 'Кампанію створено' },
       en: { title: 'Campaigns', new: 'New campaign', name: 'Name', active: 'active', paused: 'paused', last: 'last', total: 'total', none: 'No campaigns yet', runDue: '▶ Run due', runs: 'Recent runs', create: 'Create', created: 'Campaign created' },
     };
-    const cl = campLbl[global.lang] || campLbl.uk;
+    const cl = campLbl[global.getLgLang?.() || 'uk'] || campLbl.uk;
     const [campData, runs] = await Promise.all([
       fetch('/api/campaigns').then(r => r.json()),
       fetch('/api/campaigns/runs?limit=12').then(r => r.json()),
@@ -289,7 +289,7 @@
       const cities = ($('#city')?.value || '').split(',').map(x => x.trim()).filter(Boolean);
       const search = {
         category: $('#category')?.value, country: $('#country')?.value, limit: +$('#limit')?.value,
-        lang: global.lang, enrich: $('#enrich')?.checked, discover_websites: $('#discoverWebsites')?.checked,
+        lang: global.getLgLang?.() || 'uk', enrich: $('#enrich')?.checked, discover_websites: $('#discoverWebsites')?.checked,
         brave_people: $('#bravePeople')?.checked, brave_news: $('#braveNews')?.checked,
         brave_intent: $('#braveIntent')?.checked, source: global.sourceMode, ig_mode: global.igMode,
       };
@@ -304,7 +304,7 @@
   }
 
   function showPagePanels() {
-    const t = global.tab;
+    const t = global.getLgTab ? global.getLgTab() : 'search';
     const isData = t === 'search' || t === 'all' || t === 'saved';
     $('#searchPanel')?.classList.toggle('hidden', t === 'agent' || t === 'campaigns' || t === 'analytics' || t === 'infrastructure');
     $('#agentPanel')?.classList.toggle('hidden', t !== 'agent');
@@ -358,48 +358,7 @@
     }
   }
 
-  function patchOpenLeadDetail() {
-    if (!global.openLeadDetail || originalOpenLeadDetail) return;
-    originalOpenLeadDetail = global.openLeadDetail;
-    global.openLeadDetail = function (id) {
-      originalOpenLeadDetail(id);
-      const left = $('#lmLeft');
-      const right = $('#lmRight');
-      const body = $('#lmBody');
-      if (!left || !right || !body) return;
-      const html = body.innerHTML;
-      const actions = body.querySelector('.lm-actions');
-      if (actions) actions.remove();
-      const splitIdx = html.indexOf('lm-section-title');
-      left.innerHTML = body.innerHTML;
-      right.innerHTML = `
-        <div id="lmRightAnalysis"><div class="lm-section-title">AI Analysis</div><div class="dw-box" id="lmAiSummary"><span class="spin"></span></div></div>
-        <div id="lmRightHistory" style="margin-top:16px"><div class="lm-section-title">Timeline</div><div id="lmHistoryList"></div></div>
-        <div class="lm-actions" style="margin-top:16px">
-          <button type="button" id="lmBrave" class="lm-btn-brave">Brave enrich</button>
-          <button type="button" id="lmWrite" class="lm-btn-write">${(global.UI?.[global.lang] || {}).write_msg || 'Outreach'}</button>
-        </div>`;
-      body.innerHTML = '';
-      body.appendChild(left);
-      body.appendChild(right);
-      const l = global.findLead ? global.findLead(id) : null;
-      if (l) {
-        fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lead: l, lang: global.lang }) })
-          .then(r => r.json()).then(d => { const el = $('#lmAiSummary'); if (el) el.textContent = d.summary || '—'; }).catch(() => {});
-      }
-      loadLeadHistory(id, $('#lmHistoryList'));
-      $('#lmWrite')?.addEventListener('click', () => { global.closeLeadDetail?.(); global.openOutreach?.(id); });
-      $('#lmBrave')?.addEventListener('click', async () => {
-        const b = $('#lmBrave'); if (b) { b.disabled = true; b.textContent = '…'; }
-        const lead = global.findLead?.(id);
-        if (!lead) return;
-        const r = await fetch('/api/brave/enrich', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lead, people: true, news: true, intent: true }) });
-        const d = await r.json();
-        if (r.ok) { Object.assign(lead, d); global.closeLeadDetail?.(); global.openLeadDetail(id); }
-        else if (b) { b.disabled = false; b.textContent = d.error || 'Error'; }
-      });
-    };
-  }
+  function patchOpenLeadDetail() { /* two-column layout in index.html */ }
 
   function patchPollSearchJob() {
     if (!global.pollSearchJob || originalPollSearchJob) return;
@@ -408,11 +367,11 @@
       showPipeline(true);
       currentPipelineStage = 'queued';
       updateSearchPipeline('queued', 10);
-      const u = global.UI?.[global.lang] || {};
+      const u = global.UI?.[global.getLgLang?.() || 'uk'] || {};
       const t0 = Date.now();
       while (true) {
         if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
-        if (mySeq !== global.searchSeq) throw new DOMException('Aborted', 'AbortError');
+        if (mySeq !== (global.getSearchSeq?.() ?? mySeq)) throw new DOMException('Aborted', 'AbortError');
         const r = await fetch(`/api/jobs/${jobId}`, { signal });
         const job = await r.json();
         if (job.status === 'done') {
@@ -434,7 +393,7 @@
         const idx = PIPELINE_STAGES.indexOf(currentPipelineStage);
         const pct = Math.min(95, ((idx + 1) / PIPELINE_STAGES.length) * 100);
         updateSearchPipeline(currentPipelineStage, pct);
-        const label = (STAGE_I18N[currentPipelineStage] || {})[global.lang] || currentPipelineStage;
+        const label = (STAGE_I18N[currentPipelineStage] || {})[global.getLgLang?.() || 'uk'] || currentPipelineStage;
         const st = document.querySelector('#status');
         if (st) st.innerHTML = `<span class="spin"></span><span>${label}…</span>`;
         await global.sleep?.(1200, signal) ?? new Promise(res => setTimeout(res, 1200));
@@ -488,8 +447,8 @@
     };
     global.paintTabs = function () {
       originalPaintTabs();
-      const u = global.UI?.[global.lang] || {};
-      const t = global.tab;
+      const u = global.UI?.[global.getLgLang?.() || 'uk'] || {};
+      const t = global.getLgTab ? global.getLgTab() : 'search';
       if (PAGE_TITLES[t]) {
         const pt = $('#pageTitle'); if (pt && u[PAGE_TITLES[t]]) pt.textContent = u[PAGE_TITLES[t]];
         const ps = $('#pageSub'); if (ps && u[PAGE_SUBS[t]]) ps.textContent = u[PAGE_SUBS[t]];
@@ -502,24 +461,18 @@
   function bindPageNav() {
     $$('.page-nav').forEach(b => {
       b.onclick = () => {
-        global.tab = b.dataset.tab;
-        global.paintTabs?.();
-        if (global.tab === 'saved') global.loadSaved?.();
-        else if (global.tab === 'all') global.loadAll?.();
-        else if (global.tab === 'agent') global.initAgent?.();
-        else if (global.tab !== 'campaigns' && global.tab !== 'analytics' && global.tab !== 'infrastructure') global.renderCurrent?.();
+        if (global.setLgTab) global.setLgTab(b.dataset.tab);
+        const t = global.getLgTab?.() || 'search';
+        if (t === 'saved') global.loadSaved?.();
+        else if (t === 'all') global.loadAll?.();
+        else if (t === 'agent') global.initAgent?.();
+        else if (t === 'search') global.renderCurrent?.();
       };
     });
     $('#infraHealthBtn')?.addEventListener('click', () => {
-      global.tab = 'infrastructure';
-      global.paintTabs?.();
+      global.setLgTab?.('infrastructure');
     });
     $('#statsBtnSide')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      global.tab = 'analytics';
-      global.paintTabs?.();
-    }, true);
-    $('#statsBtnBottom')?.addEventListener('click', (e) => {
       e.preventDefault();
       global.tab = 'analytics';
       global.paintTabs?.();

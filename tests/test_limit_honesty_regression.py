@@ -2,15 +2,14 @@
 from __future__ import annotations
 
 import unittest
-from pathlib import Path
 
-INDEX = Path(__file__).resolve().parent.parent / "leadgen" / "static" / "index.html"
+from static_bundle import load_static_bundle
 
 
 class LimitHonestyRegressionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.html = INDEX.read_text(encoding="utf-8")
+        cls.html = load_static_bundle()
 
     def test_async_search_api_used(self) -> None:
         self.assertIn("fetch('/api/search'", self.html)

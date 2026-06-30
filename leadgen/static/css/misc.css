@@ -1,0 +1,7 @@
+/* Misc overrides (formerly inline in index.html) */
+summary { list-style: none; cursor: pointer; }
+summary::-webkit-details-marker { display: none; }
+details > div { animation: fadeUp 0.25s ease both; }
+#radius { accent-color: var(--accent); }
+.srcbtn.on { background: var(--bg-3) !important; color: var(--text) !important; box-shadow: var(--shadow-sm); }
+.igmbtn.on { background: var(--bg-3) !important; color: var(--text) !important; }
