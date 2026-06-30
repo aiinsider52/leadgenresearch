@@ -3,7 +3,19 @@ name = "leadgen"
 version = "0.1.0"
 description = "Geo lead finder + n8n automation matcher (uk/ru/en)"
 requires-python = ">=3.9"
+dependencies = [
+  "requests>=2.31",
+  "beautifulsoup4>=4.12",
+  "lxml>=5.0",
+  "PyYAML>=6.0",
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "psycopg2-binary>=2.9",
+]
 
 # Vercel FastAPI entrypoint (https://vercel.com/docs/frameworks/backend/fastapi)
 [tool.vercel]
 entrypoint = "leadgen.app:app"
+
+[tool.vercel.scripts]
+build = "bash scripts/vercel_build.sh"
