@@ -273,7 +273,7 @@
     if (typeof global.openStats === 'function') {
       await global.openStats();
       const statsHtml = $('#statsBody')?.innerHTML || '';
-      body.innerHTML = `<div class="exec-kpi-grid page-panel">${statsHtml}</div>`;
+      body.innerHTML = `<div class="analytics-dashboard page-panel">${statsHtml}</div>`;
       $('#stats')?.classList.add('hidden');
       document.body.style.overflow = '';
       bindAnalyticsHandlers();
@@ -351,7 +351,7 @@
       const rows = await fetch('/api/history?lead_id=' + encodeURIComponent(id)).then(r => r.json());
       const list = Array.isArray(rows) ? rows : rows.events || [];
       container.innerHTML = list.length
-        ? list.map(e => `<div class="lm-timeline-item"><time>${global.esc ? global.esc(e.ts || e.created_at || '') : ''}</time><div>${global.esc ? global.esc(e.action || e.type || e.summary || '') : ''}</div></div>`).join('')
+        ? list.map(formatHistoryItem).filter(Boolean).join('')
         : '<span class="text-muted" style="font-size:12px">—</span>';
     } catch {
       container.innerHTML = '<span class="text-muted" style="font-size:12px">—</span>';

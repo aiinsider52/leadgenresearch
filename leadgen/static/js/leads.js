@@ -12,9 +12,28 @@ function scoreRadarHtml(score,lang){
  return `<div class="score-radar">${keys.map(k=>{
   const v=Math.min(100,Math.max(0,Math.round(dims[k]||0)));
   const r=18,c=2*Math.PI*r,off=c*(1-v/100);
-  const stroke=v>=65?'#F97316':v>=40?'#F59E0B':'#8B5CF6';
+  const stroke=v>=65?'#7C5CFF':v>=40?'#9B7FFF':'#C4B5FD';
   return `<div class="score-ring-mini"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="rm-bg" cx="22" cy="22" r="${r}"/><circle class="rm-fg" cx="22" cy="22" r="${r}" stroke="${stroke}" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${off.toFixed(2)}" transform="rotate(-90 22 22)"/></svg><div><div class="rm-label">${labels[k][lang]||k}</div><div class="rm-val">${v}</div></div></div>`;
  }).join('')}</div>`;}
+function formatMd(text) {
+  if (!text) return '—';
+  return esc(text).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+}
+function formatHistoryItem(e) {
+  const when = (e.at || e.ts || e.created_at || '').slice(0, 16).replace('T', ' ');
+  const label = e.event || e.action || e.type || '';
+  let detail = '';
+  if (e.changes && typeof e.changes === 'object' && !Array.isArray(e.changes)) {
+    const parts = Object.entries(e.changes)
+      .filter(([, v]) => v != null && v !== '')
+      .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`);
+    detail = parts.join(' · ');
+  } else if (typeof e.summary === 'string') {
+    detail = e.summary;
+  }
+  if (!when && !label && !detail) return '';
+  return `<div class="lm-timeline-item"><time>${esc(when)}</time><div><strong>${esc(label)}</strong>${detail ? `<span class="text-muted"> — ${esc(detail)}</span>` : ''}</div></div>`;
+}
 function openLeadDetail(id){
   if(searchLoading||!id)return;
   const u=UI[lang],l=findLead(id);
@@ -75,24 +94,23 @@ function openLeadDetail(id){
     <div id="lmRightHistory"><div class="lm-section-title">Timeline</div><div id="lmHistoryList"><span class="text-muted" style="font-size:12px">—</span></div></div>
     <div class="lm-actions">
       <button type="button" id="lmBrave" class="lm-btn-brave">${svg('search','w-5 h-5')}Brave deep enrich</button>
-      <button type="button" id="lmWrite" class="lm-btn-write">${svg('pen','w-5 h-5')}${u.write_msg}</button>
     </div>`;
 
   $('#lmLeft').innerHTML=leftCol;
   $('#lmRight').innerHTML=rightCol;
   fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lead:l,lang})})
-    .then(r=>r.json()).then(d=>{const el=$('#lmAiSummary');if(el)el.textContent=d.summary||'—';}).catch(()=>{});
+    .then(r=>r.json()).then(d=>{const el=$('#lmAiSummary');if(el)el.innerHTML=formatMd(d.summary||'');}).catch(()=>{});
   fetch('/api/history?lead_id='+encodeURIComponent(id)).then(r=>r.json()).then(rows=>{
     const list=Array.isArray(rows)?rows:(rows.events||[]);
     const el=$('#lmHistoryList');
     if(!el)return;
-    el.innerHTML=list.length?list.map(e=>`<div class="lm-timeline-item"><time>${esc(e.ts||e.created_at||'')}</time><div>${esc(e.action||e.type||e.summary||'')}</div></div>`).join(''):'<span class="text-muted" style="font-size:12px">—</span>';
+    const html=list.map(formatHistoryItem).filter(Boolean).join('');
+    el.innerHTML=html||'<span class="text-muted" style="font-size:12px">—</span>';
   }).catch(()=>{});
   $('#lmBrave').onclick=async()=>{const b=$('#lmBrave');b.disabled=true;b.textContent='…';
     const r=await fetch('/api/brave/enrich',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lead:l,people:true,news:true,intent:true})});
     const d=await r.json();if(r.ok){Object.assign(l,d);closeLeadDetail();openLeadDetail(l._id);}else{b.disabled=false;b.textContent=d.error||'Brave error';}};
   const openOut=()=>{closeLeadDetail();openOutreach(id);};
-  $('#lmWrite').onclick=openOut;
   $('#lmWriteHead').onclick=openOut;
   $('#leadModal').classList.remove('hidden');document.body.style.overflow='hidden';
 }

@@ -56,6 +56,11 @@
   box-shadow: var(--shadow-md) !important;
 }
 .lead-card::before { width: 3px !important; opacity: 1 !important; }
+.lead-card.tier-hot::before { background: linear-gradient(var(--accent), var(--accent-2)) !important; box-shadow: 0 0 12px var(--accent-glow) !important; }
+.lead-card.tier-warm::before { background: linear-gradient(var(--accent-hover), var(--accent)) !important; box-shadow: none !important; }
+.lead-card.tier-cold::before { background: var(--text-tertiary) !important; box-shadow: none !important; }
+.score-pill .sc-ring { stroke: var(--accent) !important; filter: drop-shadow(0 0 4px var(--accent-glow)) !important; }
+.lm-btn-write { background: var(--accent) !important; color: #fff !important; }
 
 .score-pill { width: 44px !important; height: 44px !important; border-radius: 50% !important; }
 .src-chip.on, .filterchip.active {
