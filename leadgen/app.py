@@ -620,6 +620,26 @@ def register_page() -> HTMLResponse:
     return _html_page(REGISTER_PATH)
 
 
+@app.get("/auth/callback", include_in_schema=False)
+def auth_callback(token: str = ""):
+    """Set session cookie after client-side login, then open dashboard."""
+    raw = (token or "").strip()
+    if not raw or not auth.verify_token(raw):
+        return RedirectResponse("/login", status_code=302)
+    resp = RedirectResponse("/", status_code=302)
+    secure = bool(os.environ.get("VERCEL") or os.environ.get("RENDER"))
+    resp.set_cookie(
+        auth.SESSION_COOKIE,
+        raw,
+        httponly=True,
+        samesite="lax",
+        secure=secure,
+        max_age=86400 * 30,
+        path="/",
+    )
+    return resp
+
+
 class AuthRegisterRequest(BaseModel):
     email: str
     password: str

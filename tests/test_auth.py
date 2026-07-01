@@ -57,9 +57,24 @@ class AuthFlowTest(unittest.TestCase):
             "/api/auth/register",
             json={"email": "gate@example.com", "password": "secret123"},
         )
-        r = self.client.get("/", follow_redirects=False)
+        fresh = TestClient(app)
+        r = fresh.get("/", follow_redirects=False)
         self.assertEqual(r.status_code, 302)
         self.assertIn("/login", r.headers.get("location", ""))
+
+    def test_auth_callback_sets_cookie(self) -> None:
+        r = self.client.post(
+            "/api/auth/register",
+            json={"email": "cb@example.com", "password": "secret123"},
+        )
+        token = r.json()["token"]
+        fresh = TestClient(app)
+        r2 = fresh.get(f"/auth/callback?token={token}", follow_redirects=False)
+        self.assertEqual(r2.status_code, 302)
+        self.assertEqual(r2.headers.get("location"), "/")
+        self.assertTrue(fresh.cookies.get("lg_session"))
+        r3 = fresh.get("/", follow_redirects=False)
+        self.assertEqual(r3.status_code, 200)
 
     def test_dashboard_redirects_to_register_when_no_users(self) -> None:
         os.environ["REQUIRE_AUTH"] = "false"

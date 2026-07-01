@@ -20,7 +20,7 @@ const AUTH_I18N = {
     auth_have_account: 'Вже є акаунт?',
     auth_login_link: 'Увійти',
     auth_err_password_mismatch: 'Паролі не збігаються',
-    auth_err_email_taken: 'Цей email вже зареєстровано. Увійдіть або скиньте пароль.',
+    auth_err_email_taken: 'Цей email вже зареєстровано. Увійдіть.',
     auth_err_invalid_credentials: 'Невірний email або пароль',
     auth_err_generic: 'Помилка. Спробуйте ще раз.',
     auth_loading: 'Завантаження…',
@@ -44,7 +44,7 @@ const AUTH_I18N = {
     auth_have_account: 'Уже есть аккаунт?',
     auth_login_link: 'Войти',
     auth_err_password_mismatch: 'Пароли не совпадают',
-    auth_err_email_taken: 'Этот email уже зарегистрирован. Войдите в аккаунт.',
+    auth_err_email_taken: 'Этот email уже зарегистрирован. Войдите.',
     auth_err_invalid_credentials: 'Неверный email или пароль',
     auth_err_generic: 'Ошибка. Попробуйте снова.',
     auth_loading: 'Загрузка…',
@@ -122,6 +122,17 @@ function authHeaders(extra) {
   return h;
 }
 
+function authFetch(path, opts) {
+  const base = Object.assign({ credentials: 'same-origin' }, opts || {});
+  base.headers = authHeaders((opts && opts.headers) || {});
+  return fetch(path, base);
+}
+
+function finishAuth(data) {
+  setSession(data.token, data.user);
+  window.location.href = '/auth/callback?token=' + encodeURIComponent(data.token);
+}
+
 function showToast(msg, type) {
   let el = document.getElementById('lgToast');
   if (!el) {
@@ -150,16 +161,19 @@ function mapAuthError(msg) {
   return msg;
 }
 
+async function fetchAuthStatus() {
+  const r = await authFetch('/api/auth/status');
+  if (!r.ok) return null;
+  return r.json();
+}
+
 async function apiJson(path, opts) {
   const timeoutMs = path.includes('/api/auth/') ? 90000 : 60000;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   let r;
   try {
-    r = await fetch(path, Object.assign({}, opts, {
-      headers: authHeaders((opts && opts.headers) || {}),
-      signal: ctrl.signal,
-    }));
+    r = await authFetch(path, Object.assign({}, opts, { signal: ctrl.signal }));
   } catch (e) {
     clearTimeout(timer);
     if (e && e.name === 'AbortError') {
@@ -195,17 +209,9 @@ async function initAuthPage(mode) {
   if (boot) boot.classList.add('hidden');
   paintAuthI18n();
   try {
-    const st = await fetch('/api/auth/status').then((r) => r.json());
-    if (st.authenticated) {
+    const st = await fetchAuthStatus();
+    if (st && st.authenticated) {
       window.location.href = '/';
-      return;
-    }
-    if (mode === 'login' && !st.has_users) {
-      window.location.href = '/register';
-      return;
-    }
-    if (mode === 'register' && st.has_users) {
-      window.location.href = '/login';
       return;
     }
   } catch (e) { /* offline */ }
@@ -242,8 +248,7 @@ async function initAuthPage(mode) {
             name: (form.name && form.name.value.trim()) || '',
           }),
         });
-        setSession(data.token, data.user);
-        window.location.href = '/';
+        finishAuth(data);
         return;
       }
 
@@ -251,8 +256,7 @@ async function initAuthPage(mode) {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
-      setSession(data.token, data.user);
-      window.location.href = '/';
+      finishAuth(data);
     } catch (e) {
       showAuthError(e.message || authT('auth_err_generic'));
     } finally {
@@ -266,9 +270,9 @@ async function initAuthPage(mode) {
 
 async function guardDashboard() {
   try {
-    const st = await fetch('/api/auth/status', { headers: authHeaders() }).then((r) => r.json());
-    if (!st.authenticated) {
-      window.location.href = st.has_users ? '/login' : '/register';
+    const st = await fetchAuthStatus();
+    if (!st || !st.authenticated) {
+      window.location.href = '/login';
       return st;
     }
     const menu = document.getElementById('userMenu');

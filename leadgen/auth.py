@@ -13,6 +13,7 @@ from .config import get
 _PUBLIC_PATHS = {
     "/login",
     "/register",
+    "/auth/callback",
     "/api/categories",
     "/api/ai_status",
     "/api/health",
@@ -60,7 +61,12 @@ def auth_landing_path() -> str:
     """Where unauthenticated visitors should land."""
     from .users import count_users
 
-    return "/register" if count_users() == 0 else "/login"
+    try:
+        if count_users() == 0:
+            return "/register"
+    except Exception:
+        pass
+    return "/login"
 
 
 def is_dashboard_path(path: str) -> bool:
