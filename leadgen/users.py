@@ -108,3 +108,30 @@ def authenticate(email: str, password: str) -> dict[str, Any] | None:
     if not user or not _verify_password(password, user["password_hash"]):
         return None
     return {k: v for k, v in user.items() if k != "password_hash"}
+
+
+def reset_password(email: str, new_password: str) -> bool:
+    err = validate_password(new_password)
+    if err:
+        raise ValueError(err)
+    user = get_user_by_email(email)
+    if not user:
+        return False
+    now = _now()
+    init_schema()
+    with connect() as con:
+        con.execute(
+            "UPDATE users SET password_hash=?, updated_at=? WHERE id=?",
+            (_hash_password(new_password), now, user["id"]),
+        )
+    return True
+
+
+def delete_user_by_email(email: str) -> bool:
+    user = get_user_by_email(email)
+    if not user:
+        return False
+    init_schema()
+    with connect() as con:
+        con.execute("DELETE FROM users WHERE id=?", (user["id"],))
+    return True

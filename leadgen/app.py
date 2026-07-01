@@ -625,7 +625,7 @@ def auth_callback(token: str = ""):
     """Set session cookie after client-side login, then open dashboard."""
     raw = (token or "").strip()
     if not raw or not auth.verify_token(raw):
-        return RedirectResponse("/login", status_code=302)
+        return RedirectResponse("/login?session=expired", status_code=302)
     resp = RedirectResponse("/", status_code=302)
     secure = bool(os.environ.get("VERCEL") or os.environ.get("RENDER"))
     resp.set_cookie(

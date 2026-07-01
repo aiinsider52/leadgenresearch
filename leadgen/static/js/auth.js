@@ -21,7 +21,8 @@ const AUTH_I18N = {
     auth_login_link: 'Увійти',
     auth_err_password_mismatch: 'Паролі не збігаються',
     auth_err_email_taken: 'Цей email вже зареєстровано. Увійдіть.',
-    auth_err_invalid_credentials: 'Невірний email або пароль',
+    auth_err_invalid_credentials: 'Невірний email або пароль. Перевірте пароль або зареєструйтесь знову.',
+    auth_err_autofill: 'Safari може підставити старий пароль — введіть пароль вручну.',
     auth_err_generic: 'Помилка. Спробуйте ще раз.',
     auth_loading: 'Завантаження…',
     auth_submitting: 'Зачекайте…',
@@ -45,7 +46,8 @@ const AUTH_I18N = {
     auth_login_link: 'Войти',
     auth_err_password_mismatch: 'Пароли не совпадают',
     auth_err_email_taken: 'Этот email уже зарегистрирован. Войдите.',
-    auth_err_invalid_credentials: 'Неверный email или пароль',
+    auth_err_invalid_credentials: 'Неверный email или пароль. Проверьте пароль или зарегистрируйтесь снова.',
+    auth_err_autofill: 'Safari может подставить старый пароль — введите пароль вручную.',
     auth_err_generic: 'Ошибка. Попробуйте снова.',
     auth_loading: 'Загрузка…',
     auth_submitting: 'Подождите…',
@@ -69,7 +71,8 @@ const AUTH_I18N = {
     auth_login_link: 'Sign in',
     auth_err_password_mismatch: 'Passwords do not match',
     auth_err_email_taken: 'This email is already registered. Please sign in.',
-    auth_err_invalid_credentials: 'Invalid email or password',
+    auth_err_invalid_credentials: 'Invalid email or password. Check your password or register again.',
+    auth_err_autofill: 'Safari may autofill an old password — type it manually.',
     auth_err_generic: 'Something went wrong. Try again.',
     auth_loading: 'Loading…',
     auth_submitting: 'Please wait…',
@@ -130,7 +133,21 @@ function authFetch(path, opts) {
 
 function finishAuth(data) {
   setSession(data.token, data.user);
-  window.location.href = '/auth/callback?token=' + encodeURIComponent(data.token);
+  window.location.replace('/auth/callback?token=' + encodeURIComponent(data.token));
+}
+
+async function resumeSessionIfPossible() {
+  const token = getToken();
+  if (!token) return false;
+  try {
+    const st = await fetchAuthStatus();
+    if (st && st.authenticated) {
+      window.location.replace('/auth/callback?token=' + encodeURIComponent(token));
+      return true;
+    }
+    clearSession();
+  } catch (e) { /* offline */ }
+  return false;
 }
 
 function showToast(msg, type) {
@@ -208,13 +225,26 @@ async function initAuthPage(mode) {
   const boot = document.getElementById('authBoot');
   if (boot) boot.classList.add('hidden');
   paintAuthI18n();
+
+  if (await resumeSessionIfPossible()) return;
+
   try {
     const st = await fetchAuthStatus();
     if (st && st.authenticated) {
-      window.location.href = '/';
+      const token = getToken();
+      if (token) {
+        window.location.replace('/auth/callback?token=' + encodeURIComponent(token));
+      } else {
+        window.location.replace('/');
+      }
       return;
     }
   } catch (e) { /* offline */ }
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('session') === 'expired') {
+    showAuthError(authT('auth_err_invalid_credentials'));
+  }
 
   const form = document.getElementById(mode === 'login' ? 'loginForm' : 'registerForm');
   if (!form) return;
@@ -258,7 +288,11 @@ async function initAuthPage(mode) {
       });
       finishAuth(data);
     } catch (e) {
-      showAuthError(e.message || authT('auth_err_generic'));
+      const msg = e.message || authT('auth_err_generic');
+      showAuthError(msg);
+      if (msg === authT('auth_err_invalid_credentials')) {
+        showToast(authT('auth_err_autofill'), 'error');
+      }
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
@@ -272,7 +306,12 @@ async function guardDashboard() {
   try {
     const st = await fetchAuthStatus();
     if (!st || !st.authenticated) {
-      window.location.href = '/login';
+      const token = getToken();
+      if (token) {
+        window.location.replace('/auth/callback?token=' + encodeURIComponent(token));
+        return st;
+      }
+      window.location.replace('/login');
       return st;
     }
     const menu = document.getElementById('userMenu');
