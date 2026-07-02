@@ -100,21 +100,27 @@ def verify_token(token: str, secret: str | None = None) -> Optional[str]:
         return None
 
 
-def extract_token(request: Request) -> Optional[str]:
-    auth = request.headers.get(TOKEN_HEADER) or ""
-    if auth.lower().startswith("bearer "):
-        return auth[7:].strip() or None
+def resolve_user(request: Request) -> Optional[str]:
+    """Accept session from Bearer header, cookie, or ?token= — try each until one verifies."""
+    candidates: list[str] = []
+    auth_hdr = request.headers.get(TOKEN_HEADER) or ""
+    if auth_hdr.lower().startswith("bearer "):
+        candidates.append(auth_hdr[7:].strip())
     cookie = request.cookies.get(SESSION_COOKIE)
     if cookie:
-        return cookie
-    return request.query_params.get("token")
-
-
-def resolve_user(request: Request) -> Optional[str]:
-    token = extract_token(request)
-    if not token:
-        return None
-    return verify_token(token)
+        candidates.append(cookie)
+    qp = request.query_params.get("token")
+    if qp:
+        candidates.append(qp.strip())
+    seen: set[str] = set()
+    for token in candidates:
+        if not token or token in seen:
+            continue
+        seen.add(token)
+        user_id = verify_token(token)
+        if user_id:
+            return user_id
+    return None
 
 
 def require_user(request: Request) -> str:

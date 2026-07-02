@@ -73,7 +73,11 @@ class AuthFlowTest(unittest.TestCase):
         self.assertEqual(r2.status_code, 302)
         self.assertEqual(r2.headers.get("location"), "/")
         self.assertTrue(fresh.cookies.get("lg_session"))
-        r3 = fresh.get("/", follow_redirects=False)
+        r3 = fresh.get(
+            "/",
+            cookies={"lg_session": fresh.cookies.get("lg_session")},
+            follow_redirects=False,
+        )
         self.assertEqual(r3.status_code, 200)
 
     def test_dashboard_redirects_to_register_when_no_users(self) -> None:
@@ -85,6 +89,24 @@ class AuthFlowTest(unittest.TestCase):
     def test_token_roundtrip(self) -> None:
         token = auth.make_token("user-abc")
         self.assertEqual(auth.verify_token(token), "user-abc")
+
+    def test_resolve_user_prefers_valid_cookie_over_invalid_bearer(self) -> None:
+        from starlette.requests import Request
+
+        good = auth.make_token("user-good")
+        bad = "user-bad.0.deadbeef"
+        scope = {
+            "type": "http",
+            "method": "GET",
+            "path": "/",
+            "query_string": b"",
+            "headers": [
+                (b"authorization", f"Bearer {bad}".encode()),
+                (b"cookie", f"{auth.SESSION_COOKIE}={good}".encode()),
+            ],
+        }
+        req = Request(scope)
+        self.assertEqual(auth.resolve_user(req), "user-good")
 
 
 if __name__ == "__main__":

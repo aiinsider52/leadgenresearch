@@ -164,3 +164,167 @@ $('#statsBtn').onclick=()=>{setLgTab('analytics');};
 $('#statsBtnBottom').onclick=(e)=>{e.preventDefault();setLgTab('analytics');};
 $('#statsClose').onclick=$('#statsBg').onclick=()=>{$('#stats').classList.add('hidden');document.body.style.overflow='';};
 
+function axT(key) {
+  const lang = localStorage.getItem('lg_lang') || 'uk';
+  const u = (typeof UI !== 'undefined' && UI[lang]) || {};
+  return u[key] || key;
+}
+
+function axBudgetBar(o, color) {
+  const pct = Math.min(100, Math.round((o.usd / o.cap) * 100));
+  return `<div class="bar-track" style="height:6px"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>`;
+}
+
+async function buildAnalyticsDashboard() {
+  const lang = localStorage.getItem('lg_lang') || 'uk';
+  const headers = typeof authHeaders === 'function' ? authHeaders() : { 'Content-Type': 'application/json' };
+  const [s, u, icp, intentLeads] = await Promise.all([
+    fetch('/api/stats', { credentials: 'same-origin', headers }).then(r => r.json()).catch(() => ({})),
+    fetch('/api/usage', { credentials: 'same-origin', headers }).then(r => r.json()).catch(() => ({})),
+    fetch('/api/icp', { credentials: 'same-origin', headers }).then(r => r.json()).catch(() => ({})),
+    fetch('/api/intent/leads?limit=10', { credentials: 'same-origin', headers }).then(r => r.json()).catch(() => []),
+  ]);
+  const roi = await fetch('/api/playbook/roi', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers,
+    body: JSON.stringify({
+      leads: s.total_leads || 100,
+      conversion_pct: 2.5,
+      deal_usd: 1500,
+      hourly_cost: 35,
+    }),
+  }).then(r => r.json()).catch(() => ({}));
+
+  const funnel = Object.fromEntries(
+    Object.entries(s.funnel || {}).map(([k, v]) => [STATUS_LABELS[k]?.[lang] || k, v])
+  );
+  const trendVals = sparkFromSeed(s.total_leads || 0, 8);
+  const emailPct = s.total_leads ? Math.round((s.with_email || 0) / s.total_leads * 100) : 0;
+  const conv = s.source_conversion || {};
+  const convHtml = Object.keys(conv).length
+    ? `<div class="ax-conv-grid">${Object.entries(conv).map(([src, x]) =>
+      `<div class="ax-conv-card"><b>${esc(src)}</b><span>reply ${x.reply_rate}% · client ${x.client_rate}%</span></div>`
+    ).join('')}</div>`
+    : `<p class="text-muted" style="font-size:12px;margin:0">${lang === 'ru' ? 'Нужны статусы contacted/replied/client.' : lang === 'en' ? 'Needs contacted/replied/client statuses.' : 'Потрібні статуси contacted/replied/client.'}</p>`;
+
+  const intentHtml = (intentLeads || []).length
+    ? `<div class="ax-intent-list">${(intentLeads || []).slice(0, 8).map(l => {
+      const c = l.company || l;
+      return `<div class="ax-intent-row"><div><div class="ax-intent-name">${esc(c.name || '—')}</div><div class="ax-intent-city">${esc(c.city || '')}</div></div></div>`;
+    }).join('')}</div>`
+    : `<p class="text-muted" style="font-size:12px;margin:0">—</p>`;
+
+  const usage = u.apify ? u : { month: '—', apify: { usd: 0, cap: 1, runs: 0 }, openai: { usd: 0, cap: 1, calls: 0 }, brave: { usd: 0, cap: 1, calls: 0 } };
+
+  return `<div class="analytics-hub">
+    <header class="ax-header">
+      <div>
+        <h2 class="ax-title">${axT('page_analytics')}</h2>
+        <p class="ax-sub">${axT('page_sub_analytics')}</p>
+      </div>
+      <button type="button" id="axRefresh" class="btn btn-ghost" style="font-size:13px">${axT('ax_refresh')}</button>
+    </header>
+
+    <div class="ax-kpis">
+      <div class="ax-kpi">
+        <div class="ax-kpi-val">${s.total_leads ?? 0}</div>
+        <div class="ax-kpi-label">${axT('ax_total')}</div>
+        <div class="ax-kpi-meta">${s.with_website ?? 0} ${axT('ax_website')}</div>
+      </div>
+      <div class="ax-kpi">
+        <div class="ax-kpi-val">${s.with_email ?? 0}</div>
+        <div class="ax-kpi-label">${axT('ax_email')}</div>
+        <div class="ax-kpi-meta">${emailPct}% · ${s.verified_email ?? 0} ${axT('ax_verified')}</div>
+      </div>
+      <div class="ax-kpi ax-kpi--hot">
+        <div class="ax-kpi-val">${(s.by_tier || {}).hot ?? 0}</div>
+        <div class="ax-kpi-label">${axT('ax_hot')}</div>
+        <div class="ax-kpi-meta">${s.with_intent ?? 0} intent</div>
+      </div>
+      <div class="ax-kpi ax-kpi--saved">
+        <div class="ax-kpi-val">${s.saved ?? 0}</div>
+        <div class="ax-kpi-label">${axT('ax_saved')}</div>
+        <div class="ax-kpi-meta">${s.with_dm ?? 0} ${axT('ax_dm')}</div>
+      </div>
+    </div>
+
+    <div class="ax-bento">
+      <section class="ax-block ax-block--wide">
+        <div class="ax-block-head"><span class="ax-block-title">${axT('ax_trend')}</span></div>
+        ${lineChart(trendVals)}
+      </section>
+      <section class="ax-block ax-block--side">
+        <div class="ax-block-head"><span class="ax-block-title">${axT('ax_coverage')}</span></div>
+        ${gaugeChart(emailPct, 'reach')}
+        <div class="ax-mini-stats">
+          <div class="ax-mini-stat"><b>${s.verified_email ?? 0}</b><span>${axT('ax_verified')}</span></div>
+          <div class="ax-mini-stat"><b>${s.with_intent ?? 0}</b><span>intent</span></div>
+        </div>
+      </section>
+
+      <section class="ax-block">
+        <div class="ax-block-head"><span class="ax-block-title">${axT('ax_funnel')}</span></div>
+        ${statBars(funnel)}
+      </section>
+      <section class="ax-block">
+        <div class="ax-block-head"><span class="ax-block-title">${axT('ax_tier')}</span></div>
+        ${donutChart(s.by_tier || {})}
+      </section>
+
+      <section class="ax-block">
+        <div class="ax-block-head"><span class="ax-block-title">${axT('ax_sources')}</span></div>
+        ${statBars(s.by_source || {})}
+      </section>
+      <section class="ax-block">
+        <div class="ax-block-head"><span class="ax-block-title">${axT('ax_cities')}</span></div>
+        ${statBars(s.by_city || {})}
+      </section>
+
+      <section class="ax-block ax-block--third">
+        <div class="ax-block-head"><span class="ax-block-title">${axT('ax_roi')}</span></div>
+        <div class="ax-roi-grid">
+          <div class="ax-roi-item"><div class="ax-roi-lbl">${axT('ax_roi_pipeline')}</div><div class="ax-roi-val">$${roi.pipeline_value_usd ?? '—'}</div></div>
+          <div class="ax-roi-item"><div class="ax-roi-lbl">${axT('ax_roi_time')}</div><div class="ax-roi-val">${roi.hours_saved ?? '—'}h</div></div>
+          <div class="ax-roi-item"><div class="ax-roi-lbl">${axT('ax_roi_mult')}</div><div class="ax-roi-val">${roi.roi_multiple ?? '—'}×</div></div>
+        </div>
+      </section>
+      <section class="ax-block ax-block--third">
+        <div class="ax-block-head"><span class="ax-block-title">${axT('ax_intent')}</span></div>
+        ${intentHtml}
+      </section>
+      <section class="ax-block ax-block--third">
+        <div class="ax-block-head"><span class="ax-block-title">${axT('ax_budget')} · ${esc(usage.month || '')}</span></div>
+        <div class="ax-budget-row">
+          <div class="ax-budget-head"><b>Apify</b><span>$${usage.apify?.usd ?? 0} / $${usage.apify?.cap ?? 0}</span></div>
+          ${axBudgetBar(usage.apify || { usd: 0, cap: 1 }, '#22C55E')}
+        </div>
+        <div class="ax-budget-row">
+          <div class="ax-budget-head"><b>OpenAI</b><span>$${usage.openai?.usd ?? 0} / $${usage.openai?.cap ?? 0}</span></div>
+          ${axBudgetBar(usage.openai || { usd: 0, cap: 1 }, '#8B5CF6')}
+        </div>
+        <div class="ax-budget-row">
+          <div class="ax-budget-head"><b>Brave</b><span>$${usage.brave?.usd ?? 0} / $${usage.brave?.cap ?? 0}</span></div>
+          ${axBudgetBar(usage.brave || { usd: 0, cap: 1 }, '#F97316')}
+        </div>
+      </section>
+
+      <section class="ax-block ax-block--full ax-icp">
+        <div class="ax-block-head"><span class="ax-block-title">${axT('ax_icp')}</span></div>
+        <textarea id="icpInput" placeholder="${lang === 'ru' ? 'Опишите идеального клиента…' : lang === 'en' ? 'Describe your ideal customer…' : 'Опишіть ідеального клієнта…'}">${esc(icp.icp || '')}</textarea>
+        <div class="ax-icp-actions">
+          <button type="button" id="icpSave" class="btn btn-primary" style="font-size:13px">${axT('ax_icp_save')}</button>
+          <span id="icpMsg" class="text-muted" style="font-size:12px"></span>
+        </div>
+      </section>
+
+      <section class="ax-block ax-block--full">
+        <div class="ax-block-head"><span class="ax-block-title">${axT('ax_conv')}</span></div>
+        ${convHtml}
+      </section>
+    </div>
+  </div>`;
+}
+
+window.buildAnalyticsDashboard = buildAnalyticsDashboard;
+

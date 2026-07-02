@@ -125,29 +125,50 @@ function authHeaders(extra) {
   return h;
 }
 
-function authFetch(path, opts) {
+function authFetch(path, opts, cookieOnly) {
   const base = Object.assign({ credentials: 'same-origin' }, opts || {});
-  base.headers = authHeaders((opts && opts.headers) || {});
+  if (cookieOnly) {
+    base.headers = Object.assign({}, (opts && opts.headers) || {});
+  } else {
+    base.headers = authHeaders((opts && opts.headers) || {});
+  }
   return fetch(path, base);
 }
 
 function finishAuth(data) {
   setSession(data.token, data.user);
+  sessionStorage.removeItem('lg_auth_redirect');
   window.location.replace('/auth/callback?token=' + encodeURIComponent(data.token));
 }
 
 async function resumeSessionIfPossible() {
+  try {
+    const stCookie = await fetchAuthStatus(true);
+    if (stCookie && stCookie.authenticated) {
+      syncSessionFromStatus(stCookie);
+      window.location.replace('/');
+      return true;
+    }
+  } catch (e) { /* offline */ }
+
   const token = getToken();
   if (!token) return false;
   try {
     const st = await fetchAuthStatus();
     if (st && st.authenticated) {
-      window.location.replace('/auth/callback?token=' + encodeURIComponent(token));
+      syncSessionFromStatus(st);
+      window.location.replace('/');
       return true;
     }
     clearSession();
   } catch (e) { /* offline */ }
   return false;
+}
+
+function syncSessionFromStatus(st) {
+  if (st && st.user) {
+    localStorage.setItem(LG_USER_KEY, JSON.stringify(st.user));
+  }
 }
 
 function showToast(msg, type) {
@@ -178,8 +199,8 @@ function mapAuthError(msg) {
   return msg;
 }
 
-async function fetchAuthStatus() {
-  const r = await authFetch('/api/auth/status');
+async function fetchAuthStatus(cookieOnly) {
+  const r = await authFetch('/api/auth/status', null, cookieOnly);
   if (!r.ok) return null;
   return r.json();
 }
@@ -231,12 +252,8 @@ async function initAuthPage(mode) {
   try {
     const st = await fetchAuthStatus();
     if (st && st.authenticated) {
-      const token = getToken();
-      if (token) {
-        window.location.replace('/auth/callback?token=' + encodeURIComponent(token));
-      } else {
-        window.location.replace('/');
-      }
+      syncSessionFromStatus(st);
+      window.location.replace('/');
       return;
     }
   } catch (e) { /* offline */ }
@@ -304,16 +321,16 @@ async function initAuthPage(mode) {
 
 async function guardDashboard() {
   try {
-    const st = await fetchAuthStatus();
+    let st = await fetchAuthStatus(true);
     if (!st || !st.authenticated) {
-      const token = getToken();
-      if (token) {
-        window.location.replace('/auth/callback?token=' + encodeURIComponent(token));
-        return st;
-      }
+      st = await fetchAuthStatus();
+    }
+    if (!st || !st.authenticated) {
+      clearSession();
       window.location.replace('/login');
       return st;
     }
+    syncSessionFromStatus(st);
     const menu = document.getElementById('userMenu');
     const emailEl = document.getElementById('userEmail');
     const user = st.user || getStoredUser();

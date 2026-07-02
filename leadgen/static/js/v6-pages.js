@@ -300,67 +300,27 @@
   async function renderAnalyticsPage() {
     const body = $('#analyticsBody');
     if (!body) return;
-    if (typeof global.openStats === 'function') {
-      await global.openStats();
-      const statsHtml = $('#statsBody')?.innerHTML || '';
-      const [playbook, intentLeads, stats] = await Promise.all([
-        fetch('/api/playbook').then(r => r.json()).catch(() => ({ steps: [] })),
-        fetch('/api/intent/leads?limit=12').then(r => r.json()).catch(() => []),
-        fetch('/api/stats').then(r => r.json()).catch(() => ({})),
-      ]);
-      const roi = await fetch('/api/playbook/roi', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          leads: stats.total_leads || 100,
-          conversion_pct: 2.5,
-          deal_usd: 1500,
-          hourly_cost: 35,
-        }),
-      }).then(r => r.json()).catch(() => ({}));
-      const steps = (playbook.steps || []).map(s =>
-        `<div class="provider-card" style="margin-bottom:8px"><div class="provider-head"><span class="provider-name">${s.title}</span><span class="text-muted" style="font-size:11px">${s.kpi || ''}</span></div><div class="provider-usage">${s.description || ''}</div></div>`
-      ).join('');
-      const intentHtml = (intentLeads || []).slice(0, 8).map(l => {
-        const c = l.company || {};
-        return `<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px"><b>${global.esc ? global.esc(c.name) : c.name}</b> · ${global.esc ? global.esc(c.city || '') : (c.city || '')}</div>`;
-      }).join('') || '<span class="text-muted">—</span>';
-      body.innerHTML = `<div class="analytics-dashboard page-panel">${statsHtml}
-        <div class="chart-panel" style="margin-top:20px"><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-tertiary);margin-bottom:10px">Automation Playbook</div>${steps}</div>
-        <div class="chart-panel" style="margin-top:12px"><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-tertiary);margin-bottom:10px">ROI estimate</div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:13px">
-            <div><span class="text-muted">Pipeline</span><div style="font-size:20px;font-weight:600">$${roi.pipeline_value_usd ?? '—'}</div></div>
-            <div><span class="text-muted">Time saved</span><div style="font-size:20px;font-weight:600">${roi.hours_saved ?? '—'}h</div></div>
-            <div><span class="text-muted">ROI</span><div style="font-size:20px;font-weight:600">${roi.roi_multiple ?? '—'}×</div></div>
-          </div></div>
-        <div class="chart-panel" style="margin-top:12px"><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-tertiary);margin-bottom:10px">Intent signals</div>${intentHtml}</div>
-      </div>`;
+    body.innerHTML = `<div class="analytics-hub" style="padding:24px"><span class="spin"></span></div>`;
+    try {
+      const html = typeof global.buildAnalyticsDashboard === 'function'
+        ? await global.buildAnalyticsDashboard()
+        : '';
+      body.innerHTML = html || '<p class="text-muted">—</p>';
       $('#stats')?.classList.add('hidden');
       document.body.style.overflow = '';
       bindAnalyticsHandlers();
+    } catch (e) {
+      body.innerHTML = `<p class="text-muted" style="padding:24px">${e.message || 'Error'}</p>`;
     }
   }
 
   function bindAnalyticsHandlers() {
+    $('#axRefresh')?.addEventListener('click', () => renderAnalyticsPage());
     $('#icpSave')?.addEventListener('click', async () => {
       await fetch('/api/icp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ icp: $('#icpInput')?.value }) });
+      const msg = $('#icpMsg');
+      if (msg) { msg.textContent = '✓'; setTimeout(() => { msg.textContent = ''; }, 1500); }
       showToast('ICP saved');
-    });
-    $('#schAdd')?.addEventListener('click', async () => {
-      const cities = ($('#city')?.value || '').split(',').map(x => x.trim()).filter(Boolean);
-      const search = {
-        category: $('#category')?.value, country: $('#country')?.value, limit: +$('#limit')?.value,
-        lang: global.getLgLang?.() || 'uk', enrich: $('#enrich')?.checked, discover_websites: $('#discoverWebsites')?.checked,
-        brave_people: $('#bravePeople')?.checked, brave_news: $('#braveNews')?.checked,
-        brave_intent: $('#braveIntent')?.checked, source: global.sourceMode, ig_mode: global.igMode,
-      };
-      if (cities.length > 1) search.cities = cities; else search.city = $('#city')?.value;
-      await fetch('/api/schedules', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ search }) });
-      renderAnalyticsPage();
-    });
-    $$('.schDel').forEach(b => b.onclick = async () => {
-      await fetch('/api/schedules/' + b.dataset.i, { method: 'DELETE' });
-      renderAnalyticsPage();
     });
   }
 
@@ -372,7 +332,7 @@
     $('#pipelinePanel')?.classList.toggle('hidden', t !== 'pipeline');
     $('#analyticsPanel')?.classList.toggle('hidden', t !== 'analytics');
     $('#infraPanel')?.classList.toggle('hidden', t !== 'infrastructure');
-    $('#kpiStrip')?.classList.toggle('hidden', t === 'agent' || t === 'infrastructure' || t === 'pipeline');
+    $('#kpiStrip')?.classList.toggle('hidden', t === 'agent' || t === 'infrastructure' || t === 'pipeline' || t === 'analytics');
     if (t === 'campaigns') renderCampaignsPage();
     if (t === 'pipeline') renderPipelinePage();
     if (t === 'analytics') renderAnalyticsPage();
