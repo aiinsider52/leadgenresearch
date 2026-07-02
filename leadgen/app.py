@@ -84,6 +84,7 @@ LOGIN_PATH = Path(__file__).with_name("static") / "login.html"
 REGISTER_PATH = Path(__file__).with_name("static") / "register.html"
 RESET_PASSWORD_PATH = Path(__file__).with_name("static") / "reset-password.html"
 STATIC_DIR = Path(__file__).with_name("static")
+CANONICAL_APP_URL = os.environ.get("CANONICAL_APP_URL", "https://leadgenresearch-rho.vercel.app")
 
 
 def _html_page(path: Path) -> HTMLResponse:
@@ -91,6 +92,23 @@ def _html_page(path: Path) -> HTMLResponse:
         path.read_text(encoding="utf-8"),
         headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache"},
     )
+
+
+def _ephemeral_auth_block() -> JSONResponse | None:
+    """Vercel without Postgres stores users in /tmp — they vanish between requests."""
+    if os.environ.get("VERCEL") and db_backend() != "postgresql":
+        return JSONResponse(
+            {
+                "detail": (
+                    "Цей URL без постійної бази — акаунти тут не зберігаються. "
+                    f"Відкрийте {CANONICAL_APP_URL}"
+                ),
+                "code": "ephemeral_storage",
+                "canonical_url": CANONICAL_APP_URL,
+            },
+            status_code=503,
+        )
+    return None
 
 
 def _session_response(payload: dict, token: str) -> JSONResponse:
@@ -720,6 +738,9 @@ def api_auth_status(request: Request):
 
 @app.post("/api/auth/register")
 def api_auth_register(req: AuthRegisterRequest):
+    blocked = _ephemeral_auth_block()
+    if blocked:
+        return blocked
     from . import users
 
     try:
@@ -743,6 +764,9 @@ def api_auth_register(req: AuthRegisterRequest):
 
 @app.post("/api/auth/login")
 def api_auth_login(req: AuthLoginRequest):
+    blocked = _ephemeral_auth_block()
+    if blocked:
+        return blocked
     from . import users
 
     user = users.authenticate(req.email, req.password)
@@ -783,6 +807,9 @@ def api_auth_logout():
 
 @app.post("/api/auth/reset-password")
 def api_auth_reset_password(req: AuthResetRequest):
+    blocked = _ephemeral_auth_block()
+    if blocked:
+        return blocked
     from . import users
 
     user = users.get_user_by_email(req.email)
@@ -1074,11 +1101,15 @@ def api_db_status():
 
 @app.get("/api/health")
 def api_health():
+    persistent = db_backend() == "postgresql"
+    on_vercel = bool(os.environ.get("VERCEL"))
     return JSONResponse({
         "ok": True,
-        "vercel": bool(os.environ.get("VERCEL")),
+        "vercel": on_vercel,
         "db": db_backend(),
-        "persistent": db_backend() == "postgresql",
+        "persistent": persistent,
+        "auth_available": persistent or not on_vercel,
+        "canonical_url": CANONICAL_APP_URL if on_vercel and not persistent else None,
     })
 
 

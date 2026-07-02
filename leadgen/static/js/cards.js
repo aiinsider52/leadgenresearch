@@ -17,7 +17,7 @@ function initials(name){return (name||'?').split(/\s+/).filter(Boolean).slice(0,
 function scoreRingSvg(score,tier,size=50){
  const pct=Math.min(100,Math.max(0,Number(score)||0)),r=(size/2)-5,c=2*Math.PI*r,off=c*(1-pct/100);
  const col={hot:'#FB923C',warm:'#FBBF24',cold:'#A1A1AA'}[tier]||'#A1A1AA';
- return `<svg class="score-ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="3"/><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${col}" stroke-width="3" stroke-linecap="round" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${off.toFixed(2)}" transform="rotate(-90 ${size/2} ${size/2})"/></svg>`;}
+ return `<svg class="score-ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--bg-4)" stroke-width="3"/><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${col}" stroke-width="3" stroke-linecap="round" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${off.toFixed(2)}" transform="rotate(-90 ${size/2} ${size/2})"/></svg>`;}
 function card(l){const u=UI[lang],c=l.company||{},en=l.enrichment||{};
  const emails=en.emails||[],phones=en.phones||[],extraEmails=emails.length>1?emails.length-1:0;
  const socials=Object.entries(en.socials||{}).map(([k,v])=>`<a href="${esc(v)}" target="_blank" rel="noopener" class="chip chip-sky">${esc(k)}</a>`).join('');

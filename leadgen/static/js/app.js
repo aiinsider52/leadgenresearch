@@ -89,7 +89,7 @@ const lightTiles='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png
 const map=L.map('map',{zoomControl:true,attributionControl:false}).setView([49.842,24.0316],12);
 tiles=L.tileLayer(document.documentElement.classList.contains('dark')?darkTiles:lightTiles,{maxZoom:19}).addTo(map);
 // Always-visible radius circle marking the search area (centre by default).
-circle=L.circle(map.getCenter(),{radius:+radius.value,color:'#E8B84B',weight:2,fillColor:'#8B5CF6',fillOpacity:.14}).addTo(map);
+circle=L.circle(map.getCenter(),{radius:+radius.value,color:'#7C5CFF',weight:2,fillColor:'#7C5CFF',fillOpacity:.12}).addTo(map);
 function radiusLabel(){const km=(+radius.value/1000);$('#radiusLabel').textContent='R '+km.toFixed(1)+' · ⌀'+(km*2).toFixed(0)+' km';}
 function searchPoint(){return picked||map.getCenter();}
 $('#radius').oninput=()=>{radiusLabel();circle.setRadius(+radius.value);};
@@ -136,7 +136,7 @@ $('#results').addEventListener('click',ev=>{
 
 // ---- init ----
 (async function(){
- setTheme((localStorage.getItem('lg_theme')||'dark')==='dark');
+ setTheme((localStorage.getItem('lg_theme')||'light')==='dark');
  const cats=await (await fetch('/api/categories')).json();
  $('#cats').innerHTML=cats.map(c=>`<option value="${c}">`).join('');
  paintSources();paintIgMode();paintChips();refreshSavedCount();refreshAllCount();refreshKpis();refreshBudget();applyLang();

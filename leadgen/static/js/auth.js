@@ -1,6 +1,7 @@
 /* LeadGen — authentication (login, register, session) */
 const LG_TOKEN_KEY = 'lg_token';
 const LG_USER_KEY = 'lg_user';
+const CANONICAL_APP_URL = 'https://leadgenresearch-rho.vercel.app';
 
 const AUTH_I18N = {
   uk: {
@@ -32,6 +33,8 @@ const AUTH_I18N = {
     auth_err_registered_login: 'Акаунт створено. Входимо…',
     auth_reset_ok: 'Пароль оновлено',
     auth_err_generic: 'Помилка. Спробуйте ще раз.',
+    auth_err_ephemeral: 'Ви на старому URL без бази даних — акаунти тут не зберігаються.',
+    auth_err_ephemeral_cta: 'Відкрити правильний сайт',
     auth_loading: 'Завантаження…',
     auth_submitting: 'Зачекайте…',
     auth_logout: 'Вийти',
@@ -65,6 +68,8 @@ const AUTH_I18N = {
     auth_err_registered_login: 'Аккаунт создан. Входим…',
     auth_reset_ok: 'Пароль обновлён',
     auth_err_generic: 'Ошибка. Попробуйте снова.',
+    auth_err_ephemeral: 'Вы на старом URL без базы — аккаунты здесь не сохраняются.',
+    auth_err_ephemeral_cta: 'Открыть правильный сайт',
     auth_loading: 'Загрузка…',
     auth_submitting: 'Подождите…',
     auth_logout: 'Выйти',
@@ -98,6 +103,8 @@ const AUTH_I18N = {
     auth_err_registered_login: 'Account created. Signing you in…',
     auth_reset_ok: 'Password updated',
     auth_err_generic: 'Something went wrong. Try again.',
+    auth_err_ephemeral: 'This URL has no database — accounts are not saved here.',
+    auth_err_ephemeral_cta: 'Open the correct site',
     auth_loading: 'Loading…',
     auth_submitting: 'Please wait…',
     auth_logout: 'Log out',
@@ -252,7 +259,10 @@ function showToast(msg, type) {
   showToast._t = setTimeout(() => el.classList.remove('visible'), 3200);
 }
 
-function mapAuthError(msg) {
+function mapAuthError(msg, data) {
+  if (data && data.code === 'ephemeral_storage') {
+    return authT('auth_err_ephemeral');
+  }
   if (!msg || typeof msg !== 'string') return authT('auth_err_generic');
   const lower = msg.toLowerCase();
   if (lower.includes('already registered') || lower.includes('email already')) {
@@ -296,7 +306,7 @@ async function apiJson(path, opts) {
   }
   if (!r.ok) {
     const msg = data.error || data.detail || `HTTP ${r.status}`;
-    throw new Error(mapAuthError(typeof msg === 'string' ? msg : JSON.stringify(msg)));
+    throw new Error(mapAuthError(typeof msg === 'string' ? msg : JSON.stringify(msg), data));
   }
   return data;
 }
@@ -331,11 +341,47 @@ async function hintRegistered(email) {
   }
 }
 
+function showEphemeralWarning(canonicalUrl) {
+  const url = canonicalUrl || CANONICAL_APP_URL;
+  const card = document.querySelector('.auth-card');
+  if (!card || document.getElementById('authEphemeralWarn')) return;
+
+  const box = document.createElement('div');
+  box.id = 'authEphemeralWarn';
+  box.className = 'auth-ephemeral-warn';
+  box.innerHTML =
+    '<p>' + authT('auth_err_ephemeral') + '</p>' +
+    '<a class="btn btn-primary auth-submit" href="' + url + '/login">' + authT('auth_err_ephemeral_cta') + '</a>';
+  const err = document.getElementById('authError');
+  card.insertBefore(box, err || card.querySelector('form'));
+
+  document.querySelectorAll('.auth-card form button[type="submit"]').forEach((btn) => {
+    btn.disabled = true;
+  });
+}
+
+async function ensurePersistentStorage() {
+  try {
+    const r = await fetch('/api/health', { credentials: 'same-origin' });
+    if (!r.ok) return true;
+    const h = await r.json();
+    if (h.vercel && h.persistent === false) {
+      showEphemeralWarning(h.canonical_url);
+      showAuthError(authT('auth_err_ephemeral'));
+      return false;
+    }
+  } catch (e) { /* offline */ }
+  return true;
+}
+
 async function initAuthPage(mode) {
   const boot = document.getElementById('authBoot');
   if (boot) boot.classList.add('hidden');
   paintAuthI18n();
   bindPasswordToggles(document);
+
+  const storageOk = await ensurePersistentStorage();
+  if (!storageOk) return;
 
   if (mode !== 'reset' && await resumeSessionIfPossible()) return;
 

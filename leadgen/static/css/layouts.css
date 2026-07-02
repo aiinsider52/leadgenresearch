@@ -4,15 +4,7 @@
 .app-bg .orb-2 { background: radial-gradient(circle, rgba(99, 102, 241, 0.1), transparent 70%) !important; }
 .app-bg .orb-3 { display: none; }
 
-.sidebar {
-  background: var(--bg-1) !important;
-  border-right: 1px solid var(--border);
-  backdrop-filter: blur(20px);
-}
-.topbar {
-  height: 64px; background: rgba(5, 5, 5, 0.85) !important;
-}
-html:not(.dark) .topbar { background: rgba(250, 250, 250, 0.9) !important; }
+.topbar { height: 64px; }
 
 .main-content { padding: 28px 32px calc(48px + var(--bottomnav-h)); }
 
@@ -40,7 +32,7 @@ html:not(.dark) .topbar { background: rgba(250, 250, 250, 0.9) !important; }
 .leads-toolbar {
   position: sticky; top: 64px; z-index: 10;
   padding: 12px 0; margin-bottom: 16px;
-  background: linear-gradient(var(--bg-0), transparent);
+  background: linear-gradient(var(--bg-0) 60%, transparent);
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
 }
 

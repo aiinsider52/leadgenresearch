@@ -14,6 +14,7 @@ from leadgen.db import DB_FILE, init_schema
 class AuthFlowTest(unittest.TestCase):
     def setUp(self) -> None:
         os.environ.pop("DATABASE_URL", None)
+        os.environ.pop("VERCEL", None)
         os.environ["REQUIRE_AUTH"] = "true"
         if DB_FILE.exists():
             DB_FILE.unlink()
@@ -22,6 +23,7 @@ class AuthFlowTest(unittest.TestCase):
 
     def tearDown(self) -> None:
         os.environ.pop("REQUIRE_AUTH", None)
+        os.environ.pop("VERCEL", None)
         if DB_FILE.exists():
             DB_FILE.unlink()
 
@@ -134,6 +136,18 @@ class AuthFlowTest(unittest.TestCase):
             json={"email": "reset@example.com", "password": "newpass123"},
         )
         self.assertEqual(r2.status_code, 200)
+
+    def test_vercel_ephemeral_blocks_auth(self) -> None:
+        os.environ["VERCEL"] = "1"
+        try:
+            r = self.client.post(
+                "/api/auth/register",
+                json={"email": "ephemeral@example.com", "password": "secret123"},
+            )
+            self.assertEqual(r.status_code, 503, r.text)
+            self.assertEqual(r.json().get("code"), "ephemeral_storage")
+        finally:
+            os.environ.pop("VERCEL", None)
 
 
 if __name__ == "__main__":

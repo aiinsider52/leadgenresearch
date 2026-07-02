@@ -16,7 +16,7 @@ function drawSpark(svgId,values,color,hero){
   const pts=values.map((v,i)=>{const x=p+(i/(values.length-1||1))*(w-p*2);const y=h-p-((v-min)/r)*(h-p*2);return [x,y];});
   const line=pts.map(pt=>pt.join(',')).join(' ');
   const area=pts.length?`${p},${h} ${line} ${w-p},${h}`:'';
-  const stroke=hero?'rgba(245,215,138,.95)':color;
+  const stroke=hero?'rgba(196,181,253,.95)':color;
   const last=pts[pts.length-1];
   const gradId='g'+svgId.replace(/[^a-z]/gi,'');
   el.innerHTML=`<defs><linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${hero?'rgba(255,255,255,.35)':color}" stop-opacity=".45"/><stop offset="100%" stop-opacity="0"/></linearGradient></defs>
@@ -42,9 +42,9 @@ async function refreshKpis(){
     const emailRate=total?Math.round(email/total*100):0;
     const trendEl=$('#kpiTotalTrend');if(trendEl)trendEl.textContent=emailRate?`↑ ${emailRate}% email`:'—';
     drawSpark('sparkTotal',sparkFromSeed(total,12),'#7C5CFF',true);
-    drawSpark('sparkEmail',sparkFromSeed(email,12),'#7C5CFF',false);
+    drawSpark('sparkEmail',sparkFromSeed(email,12),'#34D399',false);
     drawSpark('sparkHot',sparkFromSeed(hot,12),'#F97316',false);
-    drawSpark('sparkSaved',sparkFromSeed(saved,12),'#9B82FF',false);
+    drawSpark('sparkSaved',sparkFromSeed(saved,12),'#38BDF8',false);
   }catch(e){}}
 async function runSearch(url,body){
  const u=UI[lang];

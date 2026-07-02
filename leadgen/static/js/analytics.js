@@ -25,7 +25,7 @@ function gaugeChart(pct,label){
   const a=startA+(pctClamped/100)*totalA;
   const arcPath=(s,e)=>{const x1=cx+r*Math.cos(s),y1=cy+r*Math.sin(s),x2=cx+r*Math.cos(e),y2=cy+r*Math.sin(e);const large=e-s>Math.PI?1:0;return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`;};
   return `<div class="gauge-wrap"><svg class="gauge-svg" viewBox="0 0 ${w} ${h}">
-    <defs><linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#C99A2E"/><stop offset="100%" stop-color="#F5D78A"/></linearGradient></defs>
+    <defs><linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#7C5CFF"/><stop offset="100%" stop-color="#9B82FF"/></linearGradient></defs>
     <path class="gauge-arc-bg" d="${arcPath(startA,endA)}"/>
     <path class="gauge-arc-fg" d="${arcPath(startA,a)}"/>
     <text class="gauge-val" x="${cx}" y="${cy-4}">${pct}%</text>
@@ -34,7 +34,7 @@ function gaugeChart(pct,label){
 }
 function donutChart(obj){
   const total=Object.values(obj).reduce((a,b)=>a+b,0)||1;
-  const colors=['#E8B84B','#C99A2E','#8B5CF6','#6366F1','#71717A'];
+  const colors=['#7C5CFF','#38BDF8','#34D399','#FBBF24','#94A3B8'];
   let angle=0;const cx=60,cy=60,r=42;
   const segs=Object.entries(obj).map(([k,v],i)=>{
     const a=(v/total)*Math.PI*2;
@@ -45,7 +45,7 @@ function donutChart(obj){
     return `<path class="donut-segment" fill="${colors[i%colors.length]}" opacity=".88" d="M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z"/>`;
   }).join('');
   return `<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-    <svg width="120" height="120" viewBox="0 0 120 120">${segs}<circle cx="${cx}" cy="${cy}" r="26" fill="var(--bg-1)"/><text x="${cx}" y="${cy+4}" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">${total}</text></svg>
+    <svg width="120" height="120" viewBox="0 0 120 120">${segs}<circle cx="${cx}" cy="${cy}" r="26" fill="var(--bg-1)"/><text x="${cx}" y="${cy+4}" text-anchor="middle" fill="var(--text)" font-size="11" font-weight="600">${total}</text></svg>
     <div style="font-size:12px;color:var(--text-secondary)">${Object.entries(obj).map(([k,v],i)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="width:8px;height:8px;border-radius:50%;background:${colors[i%colors.length]}"></span>${esc(k)} <span class="text-muted">${v}</span></div>`).join('')}</div>
   </div>`;}
 function bars(obj){return statBars(obj);}
