@@ -36,7 +36,7 @@
     <h2 class="auth-title" data-i="auth_register_title">Реєстрація</h2>
     <p class="auth-sub" data-i="auth_register_sub">Створіть акаунт для доступу до платформи</p>
     <div id="authError" class="auth-error" role="alert"></div>
-    <form id="registerForm" novalidate>
+    <form id="registerForm" method="post" action="#" novalidate>
       <div class="auth-field">
         <label for="name" data-i="auth_name">Ім'я</label>
         <input id="name" name="name" type="text" autocomplete="name" placeholder="Ваше ім'я">
@@ -59,7 +59,7 @@
     <p class="auth-footer"><span data-i="auth_have_account">Вже є акаунт?</span> <a href="/login" data-i="auth_login_link">Увійти</a></p>
   </div>
 </main>
-<script src="/static/js/auth.js?v=20260705"></script>
+<script src="/static/js/auth.js?v=20260702b"></script>
 <script>initAuthPage('register');</script>
 </body>
 </html>

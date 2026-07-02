@@ -36,7 +36,7 @@
     <h2 class="auth-title" data-i="auth_login_title">Вхід</h2>
     <p class="auth-sub" data-i="auth_login_sub">Увійдіть, щоб продовжити роботу з лідами</p>
     <div id="authError" class="auth-error" role="alert"></div>
-    <form id="loginForm" novalidate>
+    <form id="loginForm" method="post" action="#" novalidate>
       <div class="auth-field">
         <label for="email" data-i="auth_email">Email</label>
         <input id="email" name="email" type="email" autocomplete="username" required placeholder="you@company.com">
@@ -54,7 +54,7 @@
     <p class="auth-footer"><span data-i="auth_no_account">Немає акаунту?</span> <a href="/register" data-i="auth_register_link">Зареєструватися</a></p>
   </div>
 </main>
-<script src="/static/js/auth.js?v=20260705"></script>
+<script src="/static/js/auth.js?v=20260702b"></script>
 <script>initAuthPage('login');</script>
 </body>
 </html>

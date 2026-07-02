@@ -181,10 +181,14 @@ function submitAuthCallback(token) {
 }
 
 async function establishServerSession(token) {
-  await authFetch('/api/auth/session', {
+  const r = await authFetch('/api/auth/session', {
     method: 'POST',
     body: JSON.stringify({ token }),
   });
+  if (!r.ok) {
+    const data = await r.json().catch(() => ({}));
+    throw new Error(data.detail || 'session failed');
+  }
 }
 
 async function finishAuth(data) {
@@ -196,19 +200,16 @@ async function finishAuth(data) {
 
   try {
     await establishServerSession(data.token);
-  } catch (e) { /* cookie may already exist from login/register response */ }
+  } catch (e) { /* login/register may have already set the cookie */ }
 
-  await new Promise((r) => setTimeout(r, 120));
-
-  let st = await fetchAuthStatus(true);
-  if (st && st.authenticated) {
-    window.location.replace('/');
-    return;
-  }
-  st = await fetchAuthStatus();
-  if (st && st.authenticated) {
-    window.location.replace('/');
-    return;
+  // GET / is gated by httponly cookie — Bearer in localStorage is not sent on navigation.
+  for (let i = 0; i < 4; i++) {
+    if (i) await new Promise((r) => setTimeout(r, 150));
+    const st = await fetchAuthStatus(true);
+    if (st && st.authenticated) {
+      window.location.replace('/');
+      return;
+    }
   }
 
   submitAuthCallback(data.token);
@@ -431,7 +432,7 @@ async function initAuthPage(mode) {
           method: 'POST',
           body: JSON.stringify({ email, password }),
         });
-        finishAuth(data);
+        await finishAuth(data);
         return;
       }
 
@@ -449,7 +450,7 @@ async function initAuthPage(mode) {
             name: (form.name && form.name.value.trim()) || '',
           }),
         });
-        finishAuth(data);
+        await finishAuth(data);
         return;
       }
 
@@ -457,7 +458,7 @@ async function initAuthPage(mode) {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
-      finishAuth(data);
+      await finishAuth(data);
     } catch (e) {
       const msg = e.message || authT('auth_err_generic');
 
