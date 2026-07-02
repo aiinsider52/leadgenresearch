@@ -27,7 +27,9 @@ const AUTH_I18N = {
     auth_reset_title: 'Новий пароль',
     auth_reset_sub: 'Встановіть новий пароль для вашого акаунта',
     auth_reset_btn: 'Зберегти пароль',
-    auth_err_try_reset: 'Акаунт існує — скиньте пароль або введіть його вручну (не autofill).',
+    auth_err_session_expired: 'Сесію не вдалося відновити. Увійдіть з паролем реєстрації.',
+    auth_err_try_reset: 'Акаунт існує — скиньте пароль на /reset-password або введіть вручну.',
+    auth_err_registered_login: 'Акаунт створено. Входимо…',
     auth_reset_ok: 'Пароль оновлено',
     auth_err_generic: 'Помилка. Спробуйте ще раз.',
     auth_loading: 'Завантаження…',
@@ -58,7 +60,9 @@ const AUTH_I18N = {
     auth_reset_title: 'Новый пароль',
     auth_reset_sub: 'Установите новый пароль для аккаунта',
     auth_reset_btn: 'Сохранить пароль',
-    auth_err_try_reset: 'Аккаунт существует — сбросьте пароль или введите вручную (не autofill).',
+    auth_err_session_expired: 'Сессию не удалось восстановить. Войдите с паролем регистрации.',
+    auth_err_try_reset: 'Аккаунт существует — сбросьте пароль на /reset-password или введите вручную.',
+    auth_err_registered_login: 'Аккаунт создан. Входим…',
     auth_reset_ok: 'Пароль обновлён',
     auth_err_generic: 'Ошибка. Попробуйте снова.',
     auth_loading: 'Загрузка…',
@@ -89,7 +93,9 @@ const AUTH_I18N = {
     auth_reset_title: 'New password',
     auth_reset_sub: 'Set a new password for your account',
     auth_reset_btn: 'Save password',
-    auth_err_try_reset: 'Account exists — reset password or type it manually (not autofill).',
+    auth_err_session_expired: 'Could not restore session. Sign in with your registration password.',
+    auth_err_try_reset: 'Account exists — reset at /reset-password or type password manually.',
+    auth_err_registered_login: 'Account created. Signing you in…',
     auth_reset_ok: 'Password updated',
     auth_err_generic: 'Something went wrong. Try again.',
     auth_loading: 'Loading…',
@@ -153,10 +159,52 @@ function authFetch(path, opts, cookieOnly) {
   return fetch(path, base);
 }
 
-function finishAuth(data) {
+function submitAuthCallback(token) {
+  const f = document.createElement('form');
+  f.method = 'POST';
+  f.action = '/auth/callback';
+  f.style.display = 'none';
+  const i = document.createElement('input');
+  i.type = 'hidden';
+  i.name = 'token';
+  i.value = token;
+  f.appendChild(i);
+  document.body.appendChild(f);
+  f.submit();
+}
+
+async function establishServerSession(token) {
+  await authFetch('/api/auth/session', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  });
+}
+
+async function finishAuth(data) {
+  if (!data || !data.token) {
+    throw new Error(authT('auth_err_generic'));
+  }
   setSession(data.token, data.user);
   sessionStorage.removeItem('lg_auth_redirect');
-  window.location.replace('/auth/callback?token=' + encodeURIComponent(data.token));
+
+  try {
+    await establishServerSession(data.token);
+  } catch (e) { /* cookie may already exist from login/register response */ }
+
+  await new Promise((r) => setTimeout(r, 120));
+
+  let st = await fetchAuthStatus(true);
+  if (st && st.authenticated) {
+    window.location.replace('/');
+    return;
+  }
+  st = await fetchAuthStatus();
+  if (st && st.authenticated) {
+    window.location.replace('/');
+    return;
+  }
+
+  submitAuthCallback(data.token);
 }
 
 async function resumeSessionIfPossible() {
@@ -302,7 +350,7 @@ async function initAuthPage(mode) {
 
   const params = new URLSearchParams(window.location.search);
   if (params.get('session') === 'expired') {
-    showAuthError(authT('auth_err_invalid_credentials'));
+    showAuthError(authT('auth_err_session_expired'));
   }
 
   const formId = mode === 'login' ? 'loginForm' : mode === 'reset' ? 'resetForm' : 'registerForm';
@@ -366,12 +414,30 @@ async function initAuthPage(mode) {
       finishAuth(data);
     } catch (e) {
       const msg = e.message || authT('auth_err_generic');
+
+      if (mode === 'register') {
+        const exists = await hintRegistered(email);
+        if (exists) {
+          showAuthError(authT('auth_err_registered_login'));
+          try {
+            const loginData = await apiJson('/api/auth/login', {
+              method: 'POST',
+              body: JSON.stringify({ email, password }),
+            });
+            await finishAuth(loginData);
+            return;
+          } catch (e2) {
+            showAuthError(authT('auth_err_try_reset'));
+            showToast(authT('auth_err_autofill'), 'error');
+            return;
+          }
+        }
+      }
+
       if (mode === 'login' && msg === authT('auth_err_invalid_credentials')) {
         const exists = await hintRegistered(email);
         showAuthError(exists ? authT('auth_err_try_reset') : msg);
-        if (exists) {
-          showToast(authT('auth_err_autofill'), 'error');
-        }
+        if (exists) showToast(authT('auth_err_autofill'), 'error');
       } else {
         showAuthError(msg);
       }

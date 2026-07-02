@@ -121,6 +121,7 @@ async def auth_middleware(request: Request, call_next):
             "/api/auth/login",
             "/api/auth/register",
             "/api/auth/reset-password",
+            "/api/auth/session",
             "/api/auth/email-hint",
             "/api/auth/status",
         ):
@@ -628,17 +629,15 @@ def reset_password_page() -> HTMLResponse:
     return _html_page(RESET_PASSWORD_PATH)
 
 
-@app.get("/auth/callback", include_in_schema=False)
-def auth_callback(token: str = ""):
-    """Set session cookie after client-side login, then open dashboard."""
-    raw = (token or "").strip()
-    if not raw or not auth.verify_token(raw):
+def _auth_callback_response(raw: str) -> RedirectResponse:
+    token = (raw or "").strip()
+    if not token or not auth.verify_token(token):
         return RedirectResponse("/login?session=expired", status_code=302)
     resp = RedirectResponse("/", status_code=302)
     secure = bool(os.environ.get("VERCEL") or os.environ.get("RENDER"))
     resp.set_cookie(
         auth.SESSION_COOKIE,
-        raw,
+        token,
         httponly=True,
         samesite="lax",
         secure=secure,
@@ -646,6 +645,33 @@ def auth_callback(token: str = ""):
         path="/",
     )
     return resp
+
+
+@app.get("/auth/callback", include_in_schema=False)
+def auth_callback(token: str = ""):
+    """Set session cookie after client-side login, then open dashboard."""
+    return _auth_callback_response(token)
+
+
+@app.post("/auth/callback", include_in_schema=False)
+async def auth_callback_post(request: Request):
+    """Safari-friendly cookie handoff via form POST."""
+    token = ""
+    try:
+        body = await request.body()
+        if body:
+            from urllib.parse import parse_qs
+
+            token = parse_qs(body.decode("utf-8", errors="ignore")).get("token", [""])[0]
+    except Exception:
+        pass
+    if not token:
+        try:
+            payload = await request.json()
+            token = str(payload.get("token") or "")
+        except Exception:
+            pass
+    return _auth_callback_response(token)
 
 
 class AuthRegisterRequest(BaseModel):
@@ -662,6 +688,10 @@ class AuthLoginRequest(BaseModel):
 class AuthResetRequest(BaseModel):
     email: str
     password: str
+
+
+class AuthSessionRequest(BaseModel):
+    token: str
 
 
 @app.get("/api/auth/email-hint")
@@ -720,6 +750,21 @@ def api_auth_login(req: AuthLoginRequest):
         return JSONResponse({"detail": "Invalid email or password"}, status_code=401)
     token = auth.make_token(user["id"])
     return _session_response({"ok": True, "token": token, "user": user}, token)
+
+
+@app.post("/api/auth/session")
+def api_auth_session(req: AuthSessionRequest):
+    """Establish httponly cookie from a valid bearer token (post-login handoff)."""
+    raw = (req.token or "").strip()
+    user_id = auth.verify_token(raw)
+    if not user_id:
+        return JSONResponse({"detail": "Invalid token"}, status_code=401)
+    from . import users
+
+    user = users.get_user_by_id(user_id)
+    if not user:
+        return JSONResponse({"detail": "User not found"}, status_code=404)
+    return _session_response({"ok": True, "token": raw, "user": user}, raw)
 
 
 @app.post("/api/auth/logout")

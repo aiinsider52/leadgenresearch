@@ -80,6 +80,17 @@ class AuthFlowTest(unittest.TestCase):
         )
         self.assertEqual(r3.status_code, 200)
 
+    def test_auth_session_endpoint(self) -> None:
+        r = self.client.post(
+            "/api/auth/register",
+            json={"email": "sess@example.com", "password": "secret123"},
+        )
+        token = r.json()["token"]
+        fresh = TestClient(app)
+        r2 = fresh.post("/api/auth/session", json={"token": token})
+        self.assertEqual(r2.status_code, 200, r2.text)
+        self.assertTrue(fresh.cookies.get("lg_session"))
+
     def test_dashboard_redirects_to_register_when_no_users(self) -> None:
         os.environ["REQUIRE_AUTH"] = "false"
         r = self.client.get("/", follow_redirects=False)

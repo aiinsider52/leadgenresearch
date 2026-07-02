@@ -21,6 +21,7 @@ _PUBLIC_PATHS = {
     "/api/auth/login",
     "/api/auth/register",
     "/api/auth/reset-password",
+    "/api/auth/session",
     "/api/auth/email-hint",
     "/api/auth/status",
     "/favicon.ico",
