@@ -7,9 +7,10 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# Python deps first (better layer caching).
+# Python deps first (better layer caching). Playwright is Docker-only (Vercel stays slim).
 COPY requirements.txt .
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt "playwright>=1.40"
 
 # Chromium + its OS dependencies for the live Google Maps worker.
 RUN python -m playwright install --with-deps chromium
