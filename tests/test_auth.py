@@ -86,10 +86,6 @@ class AuthFlowTest(unittest.TestCase):
         self.assertEqual(r.status_code, 302)
         self.assertIn("/register", r.headers.get("location", ""))
 
-    def test_token_roundtrip(self) -> None:
-        token = auth.make_token("user-abc")
-        self.assertEqual(auth.verify_token(token), "user-abc")
-
     def test_resolve_user_prefers_valid_cookie_over_invalid_bearer(self) -> None:
         from starlette.requests import Request
 
@@ -107,6 +103,26 @@ class AuthFlowTest(unittest.TestCase):
         }
         req = Request(scope)
         self.assertEqual(auth.resolve_user(req), "user-good")
+
+    def test_token_roundtrip(self) -> None:
+        token = auth.make_token("user-abc")
+        self.assertEqual(auth.verify_token(token), "user-abc")
+
+    def test_reset_password_and_login(self) -> None:
+        self.client.post(
+            "/api/auth/register",
+            json={"email": "reset@example.com", "password": "secret123"},
+        )
+        r = self.client.post(
+            "/api/auth/reset-password",
+            json={"email": "reset@example.com", "password": "newpass123"},
+        )
+        self.assertEqual(r.status_code, 200, r.text)
+        r2 = self.client.post(
+            "/api/auth/login",
+            json={"email": "reset@example.com", "password": "newpass123"},
+        )
+        self.assertEqual(r2.status_code, 200)
 
 
 if __name__ == "__main__":

@@ -82,6 +82,7 @@ app.add_middleware(
 INDEX_PATH = Path(__file__).with_name("static") / "index.html"
 LOGIN_PATH = Path(__file__).with_name("static") / "login.html"
 REGISTER_PATH = Path(__file__).with_name("static") / "register.html"
+RESET_PASSWORD_PATH = Path(__file__).with_name("static") / "reset-password.html"
 STATIC_DIR = Path(__file__).with_name("static")
 
 
@@ -119,6 +120,8 @@ async def auth_middleware(request: Request, call_next):
             "/api/health",
             "/api/auth/login",
             "/api/auth/register",
+            "/api/auth/reset-password",
+            "/api/auth/email-hint",
             "/api/auth/status",
         ):
             auth.check_api_key(request)
@@ -620,6 +623,11 @@ def register_page() -> HTMLResponse:
     return _html_page(REGISTER_PATH)
 
 
+@app.get("/reset-password", response_class=HTMLResponse)
+def reset_password_page() -> HTMLResponse:
+    return _html_page(RESET_PASSWORD_PATH)
+
+
 @app.get("/auth/callback", include_in_schema=False)
 def auth_callback(token: str = ""):
     """Set session cookie after client-side login, then open dashboard."""
@@ -649,6 +657,21 @@ class AuthRegisterRequest(BaseModel):
 class AuthLoginRequest(BaseModel):
     email: str
     password: str
+
+
+class AuthResetRequest(BaseModel):
+    email: str
+    password: str
+
+
+@app.get("/api/auth/email-hint")
+def api_auth_email_hint(email: str = ""):
+    from . import users
+
+    norm = email.strip().lower()
+    if not norm:
+        return JSONResponse({"registered": False})
+    return JSONResponse({"registered": bool(users.get_user_by_email(norm))})
 
 
 @app.get("/api/auth/status")
@@ -702,8 +725,31 @@ def api_auth_login(req: AuthLoginRequest):
 @app.post("/api/auth/logout")
 def api_auth_logout():
     resp = JSONResponse({"ok": True})
-    resp.delete_cookie(auth.SESSION_COOKIE, path="/")
+    secure = bool(os.environ.get("VERCEL") or os.environ.get("RENDER"))
+    resp.delete_cookie(
+        auth.SESSION_COOKIE,
+        path="/",
+        httponly=True,
+        samesite="lax",
+        secure=secure,
+    )
     return resp
+
+
+@app.post("/api/auth/reset-password")
+def api_auth_reset_password(req: AuthResetRequest):
+    from . import users
+
+    user = users.get_user_by_email(req.email)
+    if not user:
+        return JSONResponse({"detail": "Email not found"}, status_code=404)
+    try:
+        users.reset_password(req.email, req.password)
+    except ValueError as exc:
+        return JSONResponse({"detail": str(exc)}, status_code=400)
+    profile = users.get_user_by_id(user["id"])
+    token = auth.make_token(user["id"])
+    return _session_response({"ok": True, "message": "Password updated", "token": token, "user": profile}, token)
 
 
 @app.get("/api/auth/me")

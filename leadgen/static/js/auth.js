@@ -22,7 +22,13 @@ const AUTH_I18N = {
     auth_err_password_mismatch: 'Паролі не збігаються',
     auth_err_email_taken: 'Цей email вже зареєстровано. Увійдіть.',
     auth_err_invalid_credentials: 'Невірний email або пароль. Перевірте пароль або зареєструйтесь знову.',
-    auth_err_autofill: 'Safari може підставити старий пароль — введіть пароль вручну.',
+    auth_err_autofill: 'Safari може підставити старий пароль — введіть пароль вручну або скиньте його.',
+    auth_forgot: 'Забули пароль?',
+    auth_reset_title: 'Новий пароль',
+    auth_reset_sub: 'Встановіть новий пароль для вашого акаунта',
+    auth_reset_btn: 'Зберегти пароль',
+    auth_err_try_reset: 'Акаунт існує — скиньте пароль або введіть його вручну (не autofill).',
+    auth_reset_ok: 'Пароль оновлено',
     auth_err_generic: 'Помилка. Спробуйте ще раз.',
     auth_loading: 'Завантаження…',
     auth_submitting: 'Зачекайте…',
@@ -47,7 +53,13 @@ const AUTH_I18N = {
     auth_err_password_mismatch: 'Пароли не совпадают',
     auth_err_email_taken: 'Этот email уже зарегистрирован. Войдите.',
     auth_err_invalid_credentials: 'Неверный email или пароль. Проверьте пароль или зарегистрируйтесь снова.',
-    auth_err_autofill: 'Safari может подставить старый пароль — введите пароль вручную.',
+    auth_err_autofill: 'Safari может подставить старый пароль — введите вручную или сбросьте.',
+    auth_forgot: 'Забыли пароль?',
+    auth_reset_title: 'Новый пароль',
+    auth_reset_sub: 'Установите новый пароль для аккаунта',
+    auth_reset_btn: 'Сохранить пароль',
+    auth_err_try_reset: 'Аккаунт существует — сбросьте пароль или введите вручную (не autofill).',
+    auth_reset_ok: 'Пароль обновлён',
     auth_err_generic: 'Ошибка. Попробуйте снова.',
     auth_loading: 'Загрузка…',
     auth_submitting: 'Подождите…',
@@ -72,7 +84,13 @@ const AUTH_I18N = {
     auth_err_password_mismatch: 'Passwords do not match',
     auth_err_email_taken: 'This email is already registered. Please sign in.',
     auth_err_invalid_credentials: 'Invalid email or password. Check your password or register again.',
-    auth_err_autofill: 'Safari may autofill an old password — type it manually.',
+    auth_err_autofill: 'Safari may autofill the wrong password — type manually or reset it.',
+    auth_forgot: 'Forgot password?',
+    auth_reset_title: 'New password',
+    auth_reset_sub: 'Set a new password for your account',
+    auth_reset_btn: 'Save password',
+    auth_err_try_reset: 'Account exists — reset password or type it manually (not autofill).',
+    auth_reset_ok: 'Password updated',
     auth_err_generic: 'Something went wrong. Try again.',
     auth_loading: 'Loading…',
     auth_submitting: 'Please wait…',
@@ -242,16 +260,40 @@ function showAuthError(msg) {
   el.classList.add('visible');
 }
 
+function bindPasswordToggles(root) {
+  (root || document).querySelectorAll('[data-pw-toggle]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const input = btn.parentElement && btn.parentElement.querySelector('input');
+      if (!input) return;
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      btn.textContent = show ? '🙈' : '👁';
+    });
+  });
+}
+
+async function hintRegistered(email) {
+  try {
+    const r = await fetch('/api/auth/email-hint?email=' + encodeURIComponent(email), { credentials: 'same-origin' });
+    if (!r.ok) return false;
+    const data = await r.json();
+    return !!data.registered;
+  } catch (e) {
+    return false;
+  }
+}
+
 async function initAuthPage(mode) {
   const boot = document.getElementById('authBoot');
   if (boot) boot.classList.add('hidden');
   paintAuthI18n();
+  bindPasswordToggles(document);
 
-  if (await resumeSessionIfPossible()) return;
+  if (mode !== 'reset' && await resumeSessionIfPossible()) return;
 
   try {
     const st = await fetchAuthStatus();
-    if (st && st.authenticated) {
+    if (st && st.authenticated && mode !== 'reset') {
       syncSessionFromStatus(st);
       window.location.replace('/');
       return;
@@ -263,8 +305,12 @@ async function initAuthPage(mode) {
     showAuthError(authT('auth_err_invalid_credentials'));
   }
 
-  const form = document.getElementById(mode === 'login' ? 'loginForm' : 'registerForm');
+  const formId = mode === 'login' ? 'loginForm' : mode === 'reset' ? 'resetForm' : 'registerForm';
+  const form = document.getElementById(formId);
   if (!form) return;
+
+  const prefillEmail = params.get('email');
+  if (prefillEmail && form.email) form.email.value = prefillEmail;
 
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
@@ -281,6 +327,20 @@ async function initAuthPage(mode) {
     }
 
     try {
+      if (mode === 'reset') {
+        const password2 = form.password2.value;
+        if (password !== password2) {
+          showAuthError(authT('auth_err_password_mismatch'));
+          return;
+        }
+        const data = await apiJson('/api/auth/reset-password', {
+          method: 'POST',
+          body: JSON.stringify({ email, password }),
+        });
+        finishAuth(data);
+        return;
+      }
+
       if (mode === 'register') {
         const password2 = form.password2.value;
         if (password !== password2) {
@@ -306,14 +366,20 @@ async function initAuthPage(mode) {
       finishAuth(data);
     } catch (e) {
       const msg = e.message || authT('auth_err_generic');
-      showAuthError(msg);
-      if (msg === authT('auth_err_invalid_credentials')) {
-        showToast(authT('auth_err_autofill'), 'error');
+      if (mode === 'login' && msg === authT('auth_err_invalid_credentials')) {
+        const exists = await hintRegistered(email);
+        showAuthError(exists ? authT('auth_err_try_reset') : msg);
+        if (exists) {
+          showToast(authT('auth_err_autofill'), 'error');
+        }
+      } else {
+        showAuthError(msg);
       }
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.textContent = prevLabel || authT(mode === 'login' ? 'auth_sign_in' : 'auth_sign_up');
+        const labelKey = mode === 'login' ? 'auth_sign_in' : mode === 'reset' ? 'auth_reset_btn' : 'auth_sign_up';
+        submitBtn.textContent = prevLabel || authT(labelKey);
       }
     }
   });

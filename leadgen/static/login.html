@@ -42,14 +42,18 @@
       </div>
       <div class="auth-field">
         <label for="password" data-i="auth_password">Пароль</label>
-        <input id="password" name="password" type="password" autocomplete="current-password" required minlength="8" placeholder="••••••••">
+        <div class="auth-pw-wrap">
+          <input id="password" name="password" type="password" autocomplete="current-password" required minlength="8" placeholder="••••••••">
+          <button type="button" class="auth-pw-toggle" data-pw-toggle aria-label="Show password">👁</button>
+        </div>
       </div>
       <button type="submit" class="btn btn-primary auth-submit" data-i="auth_sign_in">Увійти</button>
     </form>
+    <p class="auth-footer" style="margin-top:12px"><a href="/reset-password" data-i="auth_forgot">Забули пароль?</a></p>
     <p class="auth-footer"><span data-i="auth_no_account">Немає акаунту?</span> <a href="/register" data-i="auth_register_link">Зареєструватися</a></p>
   </div>
 </main>
-<script src="/static/js/auth.js?v=20260702"></script>
+<script src="/static/js/auth.js?v=20260703"></script>
 <script>initAuthPage('login');</script>
 </body>
 </html>

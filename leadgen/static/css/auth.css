@@ -141,6 +141,36 @@
   margin-top: 4px;
 }
 
+.auth-pw-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-pw-wrap input {
+  padding-right: 44px;
+}
+
+.auth-pw-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.auth-pw-toggle:hover {
+  color: var(--text-secondary);
+  background: var(--bg-3);
+}
+
 .topbar-user {
   display: flex;
   align-items: center;

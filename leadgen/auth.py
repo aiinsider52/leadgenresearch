@@ -13,12 +13,15 @@ from .config import get
 _PUBLIC_PATHS = {
     "/login",
     "/register",
+    "/reset-password",
     "/auth/callback",
     "/api/categories",
     "/api/ai_status",
     "/api/health",
     "/api/auth/login",
     "/api/auth/register",
+    "/api/auth/reset-password",
+    "/api/auth/email-hint",
     "/api/auth/status",
     "/favicon.ico",
 }
